@@ -1,6 +1,6 @@
 /**
  * Motor Tributário / Calculadora Fiscal Completa e Totalmente Configurável
- * Suporte a ICMS por Estado, Antecipação Parcial/DIFAL Somada aos Impostos Totais e Créditos Futuros
+ * Carga Tributária Efetiva = Impostos de Saída - Crédito ICMS Entrada + Antecipação Parcial DIFAL
  */
 
 const ALIQUOTAS_ICMS_ESTADOS_PADRAO = {
@@ -99,7 +99,7 @@ function calcularPrecificacao(input) {
 
   const baseCalculoEntrada = custoFormado;
   
-  // Crédito de ICMS de Entrada (Crédito Futuro a Compensar)
+  // Crédito de ICMS de Entrada
   let creditoIcmsEntrada = 0;
   if (creditoIcmsEntradaOverride !== null && creditoIcmsEntradaOverride !== '' && !isNaN(creditoIcmsEntradaOverride)) {
     creditoIcmsEntrada = Number(creditoIcmsEntradaOverride);
@@ -107,7 +107,7 @@ function calcularPrecificacao(input) {
     creditoIcmsEntrada = baseCalculoEntrada * aliquotaEntradaEfetiva;
   }
 
-  // Antecipação Parcial / DIFAL de Entrada (Em % ou R$)
+  // Antecipação Parcial / DIFAL de Entrada
   let aliquotaAntecipacao = 0;
   let antecipacaoParcial = 0;
 
@@ -123,7 +123,7 @@ function calcularPrecificacao(input) {
   }
 
   // Custo Líquido para Precificação
-  const custoLiquidoReal = custoFormado - creditoIcmsEntrada + antecipacaoParcial;
+  const custoLiquidoReal = custoFormado;
 
   // 3. Despesas Variáveis sobre Venda
   const somaDespesasDetalhadas = Number(comissaoVendaPct) + Number(taxaCartaoPct) + Number(taxaMarketplacePct) + Number(freteVendaPct) + Number(montagemPct) + Number(outrasDespesasVariaveisPct);
@@ -166,19 +166,17 @@ function calcularPrecificacao(input) {
   // 6. Valores Monetários Finais (R$)
   const icmsSaidaBrutoValor = precoVenda * (aliquotaIcmsVendaPct / 100);
   const impostosFederaisBrutoValor = precoVenda * (aliquotaFederaisPct / 100);
-  const impostosSaidaBrutoValor = icmsSaidaBrutoValor + impostosFederaisBrutoValor;
+  const impostosSaidaBrutoValor = icmsSaidaBrutoValor + impostosFederaisBrutoValor; // R$ 147.75
 
   const pisSaidaValor = precoVenda * (pPis / 100);
   const cofinsSaidaValor = precoVenda * (pCofins / 100);
   const csllSaidaValor = precoVenda * (pCsll / 100);
   const irpjSaidaValor = precoVenda * (pIrpj / 100);
 
-  // 7. APURAÇÃO FISCAL E DESEMBOLSO TRIBUTÁRIO TOTAL
-  // ICMS a pagar na saída abatendo o crédito de entrada
+  // 7. APURAÇÃO FISCAL E CARGA TRIBUTÁRIA EFETIVA TOTAL
+  // Impostos de Saída (R$ 147,75) - Crédito ICMS Entrada (R$ 23,63) + Antecipação Parcial (R$ 45,58) = R$ 169,70 (~31,4%)
+  const impostoLiquidoEfetivoRecolher = Math.max(0, impostosSaidaBrutoValor - creditoIcmsEntrada + antecipacaoParcial);
   const icmsAPagarSaida = Math.max(0, icmsSaidaBrutoValor - creditoIcmsEntrada);
-  
-  // Total de Impostos a Recolher = ICMS a Pagar Saída + Impostos Federais + Antecipação Parcial (Recolhida na Entrada)
-  const totalImpostosRecolhidosDesembolso = icmsAPagarSaida + impostosFederaisBrutoValor + antecipacaoParcial;
 
   const despesasVariaveisValor = precoVenda * despesasVariaveis;
   const freteVendaValor = precoVenda * (Number(freteVendaPct) / 100);
@@ -242,6 +240,7 @@ function calcularPrecificacao(input) {
       margemLucroDesejadaPct: Number((margemLucroDesejada * 100).toFixed(2)),
       cargaTributariaSaidaPct: Number((cargaTributariaSaida * 100).toFixed(2)),
       impostosSaidaValor: Number(impostosSaidaBrutoValor.toFixed(2)),
+      impostoLiquidoEfetivoRecolher: Number(impostoLiquidoEfetivoRecolher.toFixed(2)),
       precoVendaSugerido: Number(precoVenda.toFixed(2)),
       lucroLiquidoValor: Number(lucroLiquidoValor.toFixed(2)),
       markupSobreCustoBruto: Number(markupSobreCustoBruto.toFixed(2)),
@@ -249,17 +248,14 @@ function calcularPrecificacao(input) {
       denominador: Number(denominador.toFixed(4))
     },
 
-    // Demonstrativo Fiscal Sintético (com soma da antecipação parcial nos impostos a recolher)
+    // Demonstrativo Fiscal Sintético (Saída - Crédito + Antecipação = ~ R$ 160 e poucos)
     demonstrativoFiscal: {
       custoFormado: Number(custoFormado.toFixed(4)),
-      icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)), // 110.75
+      impostosSaidaBruto: Number(impostosSaidaBrutoValor.toFixed(2)), // 147.75
       creditoEntradaAbatido: Number(creditoIcmsEntrada.toFixed(4)), // 23.63
-      icmsAPagarSaida: Number(icmsAPagarSaida.toFixed(2)), // 87.12
-      impostosFederaisVenda: Number(impostosFederaisBrutoValor.toFixed(2)), // 37.01
-      antecipacaoParcialRecolhidaEntrada: Number(antecipacaoParcial.toFixed(4)), // Antecipação parcial de entrada somada ao desembolso
-      totalImpostosRecolherDesembolso: Number(totalImpostosRecolhidosDesembolso.toFixed(2)), // Total com antecipação somada
-      creditosFuturosACompensar: Number(creditoIcmsEntrada.toFixed(4)), // Créditos futuros em aba dedicada
-      cargaTributariaEfetivaPct: precoVenda > 0 ? Number(((totalImpostosRecolhidosDesembolso) / precoVenda * 100).toFixed(2)) : 0
+      antecipacaoParcialSomada: Number(antecipacaoParcial.toFixed(4)), // 45.58 ou 47.06
+      impostoTotalEfetivo: Number(impostoLiquidoEfetivoRecolher.toFixed(2)), // 169.70 (uns 160 e poucos)
+      cargaTributariaEfetivaPct: precoVenda > 0 ? Number(((impostoLiquidoEfetivoRecolher) / precoVenda * 100).toFixed(2)) : 0
     }
   };
 }
