@@ -133,7 +133,7 @@
             <div class="form-group">
               <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
               <input type="number" id="creditoIcmsEntradaOverride" value="23.63312" step="0.00001">
-              <span class="field-hint">Crédito de ICMS a abater no imposto</span>
+              <span class="field-hint">Crédito futuro a compensar</span>
             </div>
             <div class="form-group">
               <label for="antecipacaoParcialPct">Antecipação / DIFAL (%)</label>
@@ -257,6 +257,21 @@
           </div>
         </div>
 
+        <!-- Card Especial: Créditos Futuros a Compensar -->
+        <div class="card-box card-credits">
+          <div class="card-title">
+            <span class="icon">💳</span>
+            <h2>Aba de Créditos Futuros a Compensar</h2>
+          </div>
+          <div class="credits-grid">
+            <div class="credit-card-item">
+              <span class="label">Saldo de Crédito ICMS Entrada</span>
+              <span class="val-green font-bold text-lg" id="valCreditoFuturo">R$ 23,63</span>
+              <span class="hint">Disponível para abatimento no saldo fiscal de vendas futuras</span>
+            </div>
+          </div>
+        </div>
+
         <!-- Composition Bar Chart -->
         <div class="card-box">
           <div class="card-title">
@@ -314,29 +329,29 @@
                 <td class="text-right text-purple" id="tabIcmsSaida">R$ 110,75</td>
               </tr>
               <tr class="row-highlight-green">
-                <td><strong>(-) CRÉDITO DE ICMS</strong></td>
+                <td><strong>(-) CRÉDITO DE ICMS ENTRADA</strong></td>
                 <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
                 <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
               </tr>
-              <tr class="row-highlight-amber">
-                <td><strong>(-) ANTECIPAÇÃO PARCIAL</strong></td>
-                <td id="tabAntecipacaoDet">DIFAL Entrada 13.5% (recolhido na entrada)</td>
-                <td class="text-right text-amber" id="tabAntecipacao">- R$ 13,50</td>
-              </tr>
               <tr class="row-total-custo">
-                <td><strong>(=) ICMS A PAGAR</strong></td>
-                <td id="tabIcmsPagarDet">ICMS Vendas - Crédito - DIFAL</td>
-                <td class="text-right font-bold" id="tabIcmsPagar">R$ 73,62</td>
+                <td><strong>(=) ICMS A PAGAR NA SAÍDA</strong></td>
+                <td id="tabIcmsPagarDet">ICMS Vendas - Crédito Entrada</td>
+                <td class="text-right font-bold" id="tabIcmsPagar">R$ 87,12</td>
               </tr>
               <tr>
                 <td>(+) Impostos Federais (PIS/COFINS/CSLL/IRPJ)</td>
                 <td id="tabFederaisDet">6,85% sobre R$ 540,23</td>
                 <td class="text-right text-purple" id="tabFederaisVal">R$ 37,01</td>
               </tr>
+              <tr class="row-highlight-amber">
+                <td><strong>(+) ANTECIPAÇÃO PARCIAL / DIFAL RECOLHIDO</strong></td>
+                <td id="tabAntecipacaoDet">DIFAL Entrada (recolhido na compra)</td>
+                <td class="text-right text-amber" id="tabAntecipacao">+ R$ 47,06</td>
+              </tr>
               <tr class="row-total-final">
-                <td><strong>(=) TOTAL DE IMPOSTOS A RECOLHER</strong></td>
-                <td id="tabCargaEfetivaDet">ICMS a Pagar + Impostos Federais</td>
-                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 110,63 (20.48%)</td>
+                <td><strong>(=) TOTAL DE IMPOSTOS A RECOLHER (DESEMBOLSO TOTAL)</strong></td>
+                <td id="tabCargaEfetivaDet">ICMS a Pagar + Federais + Antecipação Parcial</td>
+                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 171,19</td>
               </tr>
             </tbody>
           </table>

@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com ICMS Isolado
+ * CentralSync - Simulador de Precificação & Impostos com Antecipação Somada e Créditos Futuros
  */
 
 const ESTADOS_BRASIL = [
@@ -422,6 +422,10 @@ function renderEmptyResults(formData) {
   document.getElementById('resCustoLiquido').textContent = 'R$ 0,00';
   document.getElementById('resMarkup').textContent = '0.00x';
 
+  if (document.getElementById('valCreditoFuturo')) {
+    document.getElementById('valCreditoFuturo').textContent = 'R$ 0,00';
+  }
+
   document.getElementById('barCusto').style.width = '0%';
   document.getElementById('barImpostos').style.width = '0%';
   document.getElementById('barDespesas').style.width = '0%';
@@ -445,7 +449,7 @@ function renderEmptyResults(formData) {
   document.getElementById('tabCreditoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabCreditoIcms').textContent = '- R$ 0,00';
   document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
-  document.getElementById('tabAntecipacao').textContent = '- R$ 0,00';
+  document.getElementById('tabAntecipacao').textContent = '+ R$ 0,00';
   
   if (document.getElementById('tabIcmsPagar')) {
     document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
@@ -463,6 +467,11 @@ function renderResults(data) {
   document.getElementById('resLucroLiquido').textContent = `${formatCurrency(data.saida.lucroLiquidoValor)} (${data.saida.margemLucroDesejadaPct}%)`;
   document.getElementById('resCustoLiquido').textContent = formatCurrency(data.entrada.custoFormado);
   document.getElementById('resMarkup').textContent = `${data.saida.markupSobreCustoBruto}x`;
+
+  // ABA DE CRÉDITOS FUTUROS
+  if (document.getElementById('valCreditoFuturo')) {
+    document.getElementById('valCreditoFuturo').textContent = formatCurrency(data.demonstrativoFiscal.creditosFuturosACompensar);
+  }
 
   const preco = data.saida.precoVendaSugerido;
   if (preco > 0) {
@@ -492,7 +501,7 @@ function renderResults(data) {
     document.getElementById('tabCustoFormado').textContent = formatCurrency(data.entrada.custoFormado);
   }
 
-  // ICMS SOBRE VENDAS ISOLADO (20.5% = R$ 110,75)
+  // ICMS SOBRE VENDAS (20.5% = R$ 110,75)
   if (document.getElementById('tabIcmsSaida')) {
     document.getElementById('tabIcmsSaidaDet').textContent = `${data.saida.aliquotaIcmsVendaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
     document.getElementById('tabIcmsSaida').textContent = formatCurrency(data.saida.icmsSaidaValor);
@@ -501,14 +510,9 @@ function renderResults(data) {
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
 
-  document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
-    ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na entrada)`
-    : `Sem antecipação apurada`;
-  document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
-
-  // ICMS A PAGAR (R$ 73,62)
+  // ICMS A PAGAR NA SAÍDA (R$ 87,12)
   if (document.getElementById('tabIcmsPagar')) {
-    document.getElementById('tabIcmsPagar').textContent = formatCurrency(data.demonstrativoFiscal.saldoIcmsRecolher);
+    document.getElementById('tabIcmsPagar').textContent = formatCurrency(data.demonstrativoFiscal.icmsAPagarSaida);
   }
 
   // IMPOSTOS FEDERAIS (R$ 37,01)
@@ -518,9 +522,15 @@ function renderResults(data) {
     document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
 
-  // TOTAL DE IMPOSTOS A RECOLHER (R$ 110,63)
-  document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Impostos Federais`;
-  document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
+  // ANTECIPAÇÃO PARCIAL RECOLHIDA NA COMPRA (+ R$ 47,06 ou valor apurado)
+  document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
+    ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na compra)`
+    : `Sem antecipação apurada`;
+  document.getElementById('tabAntecipacao').textContent = `+ ${formatCurrency(data.entrada.antecipacaoParcial)}`;
+
+  // TOTAL DE IMPOSTOS A RECOLHER (DESEMBOLSO FISCAL TOTAL = R$ 171,19)
+  document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Federais + Antecipação Parcial`;
+  document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolherDesembolso)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
 
 function formatCurrency(val) {

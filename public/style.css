@@ -404,6 +404,38 @@ body {
   color: var(--accent-green);
 }
 
+/* Card Créditos Futuros */
+.card-credits {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 1) 100%);
+}
+
+.credits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.credit-card-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.credit-card-item .label {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.credit-card-item .hint {
+  font-size: 0.75rem;
+  color: var(--text-dark);
+}
+
+.text-lg {
+  font-size: 1.5rem;
+}
+
 /* Composition Bar */
 .composition-bar {
   display: flex;
