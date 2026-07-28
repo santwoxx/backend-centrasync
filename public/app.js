@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com NFe, NCM, Impostos Federais & Abatimentos Fiscais
+ * CentralSync - Simulador de Precificação & Impostos com ICMS Isolado
  */
 
 const ESTADOS_BRASIL = [
@@ -29,9 +29,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   await updateCalculations();
 });
 
-/**
- * Preenche os selects de Estado de Origem e Destino
- */
 function populateStateSelects() {
   const selectOrigem = document.getElementById('ufOrigem');
   const selectDestino = document.getElementById('ufDestino');
@@ -54,9 +51,6 @@ function populateStateSelects() {
   });
 }
 
-/**
- * Configura escutadores de eventos para todos os campos
- */
 function setupEventListeners() {
   const inputs = document.querySelectorAll('input, select');
   inputs.forEach(input => {
@@ -73,9 +67,6 @@ function setupEventListeners() {
   document.getElementById('btnShareLink').addEventListener('click', copyShareLink);
 }
 
-/**
- * Modais
- */
 function setupModals() {
   document.getElementById('btnOpenConfigModal').addEventListener('click', openIcmsModal);
   document.getElementById('btnExportJson').addEventListener('click', openExportModal);
@@ -175,9 +166,6 @@ function copyJsonExportCode() {
   });
 }
 
-/**
- * Dropzone XML NFe
- */
 function setupXmlDropzone() {
   const dropzone = document.getElementById('dropzoneXml');
   const fileInput = document.getElementById('fileXmlInput');
@@ -278,9 +266,6 @@ function applyParsedNfeData(nfe) {
   updateCalculations();
 }
 
-/**
- * Autocomplete NCM
- */
 function setupNcmSearch() {
   const ncmInput = document.getElementById('ncmInput');
   const resultsDiv = document.getElementById('ncmResults');
@@ -348,9 +333,6 @@ async function consultarNcmEspecifico(code) {
   }
 }
 
-/**
- * Alíquotas ICMS
- */
 async function fetchIcmsRates() {
   const ufOrigem = document.getElementById('ufOrigem').value;
   const ufDestino = document.getElementById('ufDestino').value;
@@ -456,27 +438,35 @@ function renderEmptyResults(formData) {
   if (document.getElementById('tabCustoFormado')) {
     document.getElementById('tabCustoFormado').textContent = 'R$ 0,00';
   }
+  if (document.getElementById('tabIcmsSaida')) {
+    document.getElementById('tabIcmsSaidaDet').textContent = '0,00% sobre R$ 0,00';
+    document.getElementById('tabIcmsSaida').textContent = 'R$ 0,00';
+  }
   document.getElementById('tabCreditoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabCreditoIcms').textContent = '- R$ 0,00';
   document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabAntecipacao').textContent = '- R$ 0,00';
-  document.getElementById('tabCustoLiquidoReal').textContent = 'R$ 0,00';
-  document.getElementById('tabSaidaDet').textContent = 'Aguardando dados...';
-  document.getElementById('tabImpostoSaida').textContent = 'R$ 0,00';
+  
+  if (document.getElementById('tabIcmsPagar')) {
+    document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
+  }
+  if (document.getElementById('tabFederaisVal')) {
+    document.getElementById('tabFederaisVal').textContent = 'R$ 0,00';
+  }
   document.getElementById('tabCargaEfetivaDet').textContent = '% Total em relação à Venda';
-  document.getElementById('tabCargaEfetiva').textContent = '0,00%';
+  document.getElementById('tabImpostoLiquido').textContent = 'R$ 0,00';
 }
 
 function renderResults(data) {
   document.getElementById('badgeRegime').textContent = data.regimeTributario;
   document.getElementById('resPrecoVenda').textContent = formatCurrency(data.saida.precoVendaSugerido);
   document.getElementById('resLucroLiquido').textContent = `${formatCurrency(data.saida.lucroLiquidoValor)} (${data.saida.margemLucroDesejadaPct}%)`;
-  document.getElementById('resCustoLiquido').textContent = formatCurrency(data.entrada.custoLiquido);
+  document.getElementById('resCustoLiquido').textContent = formatCurrency(data.entrada.custoFormado);
   document.getElementById('resMarkup').textContent = `${data.saida.markupSobreCustoBruto}x`;
 
   const preco = data.saida.precoVendaSugerido;
   if (preco > 0) {
-    const pctCusto = Math.max(0, ((data.entrada.custoLiquido / preco) * 100)).toFixed(1);
+    const pctCusto = Math.max(0, ((data.entrada.custoFormado / preco) * 100)).toFixed(1);
     const pctImposto = data.saida.cargaTributariaSaidaPct.toFixed(1);
     const pctDespesas = data.saida.despesasVariaveisPct.toFixed(1);
     const pctLucro = data.saida.margemLucroDesejadaPct.toFixed(1);
@@ -502,6 +492,12 @@ function renderResults(data) {
     document.getElementById('tabCustoFormado').textContent = formatCurrency(data.entrada.custoFormado);
   }
 
+  // ICMS SOBRE VENDAS ISOLADO (20.5% = R$ 110,75)
+  if (document.getElementById('tabIcmsSaida')) {
+    document.getElementById('tabIcmsSaidaDet').textContent = `${data.saida.aliquotaIcmsVendaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    document.getElementById('tabIcmsSaida').textContent = formatCurrency(data.saida.icmsSaidaValor);
+  }
+
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
 
@@ -510,23 +506,21 @@ function renderResults(data) {
     : `Sem antecipação apurada`;
   document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
 
-  document.getElementById('tabCustoLiquidoReal').textContent = formatCurrency(data.entrada.custoLiquido);
-
-  let textoDetSaida = `${data.saida.cargaTributariaSaidaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
-  const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
-  if (somaFederais > 0) {
-    textoDetSaida += ` (ICMS: ${data.saida.aliquotaIcmsVendaPct}%, PIS/COFINS/CSLL/IRPJ: ${somaFederais}%)`;
+  // ICMS A PAGAR (R$ 73,62)
+  if (document.getElementById('tabIcmsPagar')) {
+    document.getElementById('tabIcmsPagar').textContent = formatCurrency(data.demonstrativoFiscal.saldoIcmsRecolher);
   }
 
-  document.getElementById('tabSaidaDet').textContent = textoDetSaida;
-  document.getElementById('tabImpostoSaida').textContent = formatCurrency(data.saida.impostosSaidaValor);
-
-  document.getElementById('tabCargaEfetivaDet').textContent = `Imposto Efetivo a Pagar (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
-  if (document.getElementById('tabImpostoLiquido')) {
-    document.getElementById('tabImpostoLiquido').textContent = formatCurrency(data.demonstrativoFiscal.saldoImpostoRecolher);
-  } else {
-    document.getElementById('tabCargaEfetiva').textContent = formatCurrency(data.demonstrativoFiscal.saldoImpostoRecolher);
+  // IMPOSTOS FEDERAIS (R$ 37,01)
+  if (document.getElementById('tabFederaisVal')) {
+    const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
+    document.getElementById('tabFederaisDet').textContent = `${somaFederais}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
+
+  // TOTAL DE IMPOSTOS A RECOLHER (R$ 110,63)
+  document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Impostos Federais`;
+  document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
 
 function formatCurrency(val) {
