@@ -1,11 +1,10 @@
 /**
- * Motor Tributário / Calculadora Fiscal Completa
- * Suporte a ICMS por Estado (Entrada e Saída)
- * Regime: Simples Nacional, Lucro Presumido, Lucro Real
+ * Motor Tributário / Calculadora Fiscal Completa e Totalmente Configurável
+ * Suporte a ICMS por Estado (Entrada e Saída), Despesas Detalhadas e Overrides Avançados
  */
 
 // Alíquotas internas padrão de ICMS por Estado (UF)
-const ALIQUOTAS_ICMS_ESTADOS = {
+const ALIQUOTAS_ICMS_ESTADOS_PADRAO = {
   AC: 0.19,
   AL: 0.19,
   AM: 0.20,
@@ -35,21 +34,13 @@ const ALIQUOTAS_ICMS_ESTADOS = {
   TO: 0.20
 };
 
-const CONFIG_PADRAO = {
-  regime: 'Simples Nacional',
-  ufOrigem: 'SP',
-  ufDestino: 'BA',
-  despesasVariaveis: 0.08, // 8% (comissao, cartao, marketplace)
-  margemLucroDesejada: 0.18, // 18%
-};
-
 /**
  * Retorna a alíquota interestadual padrão de ICMS entre dois estados
  */
 function obterAliquotaInterestadual(ufOrigem, ufDestino, ehImportado = false) {
   if (ehImportado) return 0.04;
   if (!ufOrigem || !ufDestino || ufOrigem === ufDestino) {
-    return ALIQUOTAS_ICMS_ESTADOS[ufOrigem] || 0.18;
+    return ALIQUOTAS_ICMS_ESTADOS_PADRAO[ufOrigem] || 0.18;
   }
   const sulSudesteSemES = ['SP', 'RJ', 'MG', 'PR', 'RS', 'SC'];
   if (sulSudesteSemES.includes(ufOrigem.toUpperCase()) && !sulSudesteSemES.includes(ufDestino.toUpperCase())) {
@@ -59,60 +50,86 @@ function obterAliquotaInterestadual(ufOrigem, ufDestino, ehImportado = false) {
 }
 
 /**
- * Retorna a alíquota interna de ICMS de um estado
+ * Retorna a alíquota interna de ICMS de um estado (permite customTabela)
  */
-function obterAliquotaInterna(uf) {
+function obterAliquotaInterna(uf, tabelaCustom = null) {
   if (!uf) return 0.18;
-  return ALIQUOTAS_ICMS_ESTADOS[uf.toUpperCase()] || 0.18;
+  const tabela = tabelaCustom || ALIQUOTAS_ICMS_ESTADOS_PADRAO;
+  return tabela[uf.toUpperCase()] !== undefined ? tabela[uf.toUpperCase()] : 0.18;
 }
 
 /**
  * Calcula precificação e apuração tributária (Entrada x Saída)
- * @param {Object} input - Parâmetros fornecidos
+ * @param {Object} input - Parâmetros totalmente configuráveis
  */
 function calcularPrecificacao(input) {
   const {
     produto = 'Produto Sem Nome',
     atividade = 'Comercio', // Comercio ou Servico
-    regimeTributario = 'Simples Nacional', // Simples Nacional, Lucro Presumido, Lucro Real
+    regimeTributario = 'Simples Nacional', // Simples Nacional, Lucro Presumido, Lucro Real, Customizado
     ufOrigem = 'SP',
     ufDestino = 'BA',
     ehImportado = false,
     
+    // Tabela de ICMS por Estado personalizada (opcional)
+    tabelaIcmsCustom = null,
+
     // Entrada (Compra)
     custoCompra = 0,
-    ipiPct = 0, // % de IPI sobre compra
-    ipi = 0, // Valor de IPI direto (opcional)
+    ipiPct = 0,
+    ipi = 0,
     frete = 0,
     desconto = 0,
+    outrasDespesasEntrada = 0,
     
     aliquotaIcmsEntradaOverride = null, // Alíquota de entrada personalizada
-    antecipacaoParcialManual = null, // Valor manual se não usar cálculo automático
+    creditoIcmsEntradaOverride = null, // Valor direto de crédito de entrada
+    antecipacaoParcialManual = null, // Valor manual de antecipação parcial/DIFAL
     
     // Saída (Venda)
-    aliquotaSaidaOverride = null, // Alíquota efetiva personalizada de saída (ex: % DAS do Simples)
-    despesasVariaveisPct = 8, // Em % (ex: 8%)
-    margemLucroDesejadaPct = 18 // Em % (ex: 18%)
+    aliquotaSaidaOverride = null, // Alíquota de ICMS ou DAS personalizada
+    aliquotaPisSaidaPct = 0, // PIS adicional se Lucro Presumido/Real
+    aliquotaCofinsSaidaPct = 0, // COFINS adicional se Lucro Presumido/Real
+    aliquotaOutrosImpostosPct = 0, // Outros impostos (ex: ISS, IRPJ/CSLL)
+
+    // Detalhamento de Despesas Variáveis (%)
+    comissaoVendaPct = 0,
+    taxaCartaoPct = 0,
+    taxaMarketplacePct = 0,
+    outrasDespesasVariaveisPct = 0,
+    despesasVariaveisPct = 8, // fallback geral em % se itens individuais forem 0
+
+    margemLucroDesejadaPct = 18 // Em %
   } = input;
 
   const custoBase = Number(custoCompra) || 0;
   const freteValor = Number(frete) || 0;
   const descontoValor = Number(desconto) || 0;
+  const outrasDespesasEntradaValor = Number(outrasDespesasEntrada) || 0;
   
   // 1. IPI
   const valorIpi = ipi ? Number(ipi) : custoBase * (Number(ipiPct) / 100);
 
   // 2. Alíquotas de ICMS de Entrada
-  const aliquotaInternaDestino = obterAliquotaInterna(ufDestino);
+  const aliquotaInternaDestino = obterAliquotaInterna(ufDestino, tabelaIcmsCustom);
   const aliquotaInterestadual = obterAliquotaInterestadual(ufOrigem, ufDestino, ehImportado);
   
-  const aliquotaEntradaEfetiva = aliquotaIcmsEntradaOverride !== null && aliquotaIcmsEntradaOverride !== '' && !isNaN(aliquotaIcmsEntradaOverride)
-    ? Number(aliquotaIcmsEntradaOverride) / 100
-    : (ufOrigem === ufDestino ? aliquotaInternaDestino : aliquotaInterestadual);
+  let aliquotaEntradaEfetiva = 0;
+  if (aliquotaIcmsEntradaOverride !== null && aliquotaIcmsEntradaOverride !== '' && !isNaN(aliquotaIcmsEntradaOverride)) {
+    aliquotaEntradaEfetiva = Number(aliquotaIcmsEntradaOverride) / 100;
+  } else {
+    aliquotaEntradaEfetiva = (ufOrigem === ufDestino ? aliquotaInternaDestino : aliquotaInterestadual);
+  }
 
   // Crédito de ICMS de Entrada (R$)
-  const baseCalculoEntrada = custoBase + freteValor + valorIpi - descontoValor;
-  const creditoIcmsEntrada = baseCalculoEntrada * aliquotaEntradaEfetiva;
+  const baseCalculoEntrada = custoBase + freteValor + valorIpi + outrasDespesasEntradaValor - descontoValor;
+  
+  let creditoIcmsEntrada = 0;
+  if (creditoIcmsEntradaOverride !== null && creditoIcmsEntradaOverride !== '' && !isNaN(creditoIcmsEntradaOverride)) {
+    creditoIcmsEntrada = Number(creditoIcmsEntradaOverride);
+  } else {
+    creditoIcmsEntrada = baseCalculoEntrada * aliquotaEntradaEfetiva;
+  }
 
   // Antecipação Parcial / DIFAL de Entrada (R$)
   let aliquotaAntecipacao = 0;
@@ -125,12 +142,15 @@ function calcularPrecificacao(input) {
     antecipacaoParcial = baseCalculoEntrada * aliquotaAntecipacao;
   }
 
-  // 3. Formação do Custo Líquido
-  // Custo Líquido = Custo Bruto + Frete + IPI - Desconto - Crédito ICMS Entrada + Antecipação Parcial
-  const custoLiquido = custoBase + freteValor + valorIpi - descontoValor - creditoIcmsEntrada + antecipacaoParcial;
+  // 3. Formação do Custo Líquido Real
+  const custoLiquido = custoBase + freteValor + valorIpi + outrasDespesasEntradaValor - descontoValor - creditoIcmsEntrada + antecipacaoParcial;
 
   // 4. Parâmetros de Saída
-  const despesasVariaveis = Number(despesasVariaveisPct) / 100;
+  // Soma das despesas variáveis especificadas ou fallback do total
+  const somaDespesasDetalhadas = Number(comissaoVendaPct) + Number(taxaCartaoPct) + Number(taxaMarketplacePct) + Number(outrasDespesasVariaveisPct);
+  const despesasVariaveisFinalPct = somaDespesasDetalhadas > 0 ? somaDespesasDetalhadas : Number(despesasVariaveisPct);
+  const despesasVariaveis = despesasVariaveisFinalPct / 100;
+
   const margemLucroDesejada = Number(margemLucroDesejadaPct) / 100;
 
   // Carga Tributária de Saída (T)
@@ -139,17 +159,17 @@ function calcularPrecificacao(input) {
     cargaTributariaSaida = Number(aliquotaSaidaOverride) / 100;
   } else {
     if (regimeTributario === 'Simples Nacional') {
-      cargaTributariaSaida = atividade === 'Servico' ? 0.15 : 0.085; // 8.5% Comércio, 15% Serviço por padrão
+      cargaTributariaSaida = atividade === 'Servico' ? 0.15 : 0.085;
     } else {
-      // Lucro Presumido / Real (ICMS da UF Destino + PIS/COFINS ~ 3.65% Presumido)
-      const aliquotaIcmsVenda = obterAliquotaInterna(ufDestino);
-      const pisCofinsVenda = 0.0365;
-      cargaTributariaSaida = aliquotaIcmsVenda + pisCofinsVenda;
+      const aliquotaIcmsVenda = obterAliquotaInterna(ufDestino, tabelaIcmsCustom);
+      const pis = Number(aliquotaPisSaidaPct) / 100 || 0.0065;
+      const cofins = Number(aliquotaCofinsSaidaPct) / 100 || 0.03;
+      const outros = Number(aliquotaOutrosImpostosPct) / 100 || 0;
+      cargaTributariaSaida = aliquotaIcmsVenda + pis + cofins + outros;
     }
   }
 
   // 5. Preço de Venda (Markup Divisor / Gross Up)
-  // Denominador = 1 - (Despesas Variáveis + Margem Lucro + Carga Tributária Saída)
   const denominador = 1 - (despesasVariaveis + margemLucroDesejada + cargaTributariaSaida);
 
   let precoVenda = 0;
@@ -164,12 +184,11 @@ function calcularPrecificacao(input) {
   const despesasVariaveisValor = precoVenda * despesasVariaveis;
   const lucroLiquidoValor = precoVenda * margemLucroDesejada;
 
-  // Markup multiplicador
   const markupSobreCustoBruto = custoBase > 0 ? (precoVenda / custoBase) : 0;
   const markupSobreCustoLiquido = custoLiquido > 0 ? (precoVenda / custoLiquido) : 0;
 
   // 7. Demonstrativo de Apuração Fiscal (Entrada x Saída)
-  const debitoIcmsSaidaEstestimado = precoVenda * (aliquotaSaidaOverride ? Number(aliquotaSaidaOverride)/100 : obterAliquotaInterna(ufDestino));
+  const debitoIcmsSaidaEstestimado = precoVenda * (aliquotaSaidaOverride ? Number(aliquotaSaidaOverride)/100 : obterAliquotaInterna(ufDestino, tabelaIcmsCustom));
   const saldoIcmsRecolher = Math.max(0, debitoIcmsSaidaEstestimado - creditoIcmsEntrada);
 
   return {
@@ -184,6 +203,7 @@ function calcularPrecificacao(input) {
       custoCompra: Number(custoBase.toFixed(2)),
       frete: Number(freteValor.toFixed(2)),
       ipi: Number(valorIpi.toFixed(2)),
+      outrasDespesasEntrada: Number(outrasDespesasEntradaValor.toFixed(2)),
       desconto: Number(descontoValor.toFixed(2)),
       baseCalculoEntrada: Number(baseCalculoEntrada.toFixed(2)),
       aliquotaEntradaPct: Number((aliquotaEntradaEfetiva * 100).toFixed(2)),
@@ -195,7 +215,10 @@ function calcularPrecificacao(input) {
     
     // Saída detalhada
     saida: {
-      despesasVariaveisPct: Number((despesasVariaveis * 100).toFixed(2)),
+      comissaoVendaPct: Number(comissaoVendaPct),
+      taxaCartaoPct: Number(taxaCartaoPct),
+      taxaMarketplacePct: Number(taxaMarketplacePct),
+      despesasVariaveisPct: Number(despesasVariaveisFinalPct.toFixed(2)),
       despesasVariaveisValor: Number(despesasVariaveisValor.toFixed(2)),
       margemLucroDesejadaPct: Number((margemLucroDesejada * 100).toFixed(2)),
       cargaTributariaSaidaPct: Number((cargaTributariaSaida * 100).toFixed(2)),
@@ -222,6 +245,5 @@ module.exports = {
   calcularPrecificacao,
   obterAliquotaInterestadual,
   obterAliquotaInterna,
-  ALIQUOTAS_ICMS_ESTADOS,
-  CONFIG_PADRAO
+  ALIQUOTAS_ICMS_ESTADOS_PADRAO
 };

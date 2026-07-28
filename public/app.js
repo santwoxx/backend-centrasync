@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com NFe & NCM
+ * CentralSync - Simulador de Precificação & Impostos com NFe, NCM & Exportação
  */
 
 const ESTADOS_BRASIL = [
@@ -9,7 +9,15 @@ const ESTADOS_BRASIL = [
   'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'
 ];
 
+let DEFAULT_ICMS_RATES = {
+  AC: 19, AL: 19, AM: 20, AP: 18, BA: 20.5, CE: 20, DF: 20, ES: 17, GO: 19, MA: 22,
+  MG: 18, MS: 17, MT: 17, PA: 19, PB: 20, PE: 20.5, PI: 21, PR: 19.5, RJ: 20, RN: 20,
+  RO: 17.5, RR: 20, RS: 17, SC: 17, SE: 19, SP: 18, TO: 20
+};
+
+let currentCustomIcmsTable = { ...DEFAULT_ICMS_RATES };
 let ncmSearchTimeout = null;
+let lastCalculatedData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   populateStateSelects();
@@ -17,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   setupXmlDropzone();
   setupNcmSearch();
+  setupModals();
   await updateCalculations();
 });
 
@@ -46,7 +55,7 @@ function populateStateSelects() {
 }
 
 /**
- * Configura escutadores de eventos para os campos
+ * Configura escutadores de eventos para todos os campos
  */
 function setupEventListeners() {
   const inputs = document.querySelectorAll('input, select');
@@ -62,6 +71,102 @@ function setupEventListeners() {
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
 
   document.getElementById('btnShareLink').addEventListener('click', copyShareLink);
+}
+
+/**
+ * Configura Modais
+ */
+function setupModals() {
+  document.getElementById('btnOpenConfigModal').addEventListener('click', openIcmsModal);
+  document.getElementById('btnExportJson').addEventListener('click', openExportModal);
+}
+
+function openIcmsModal() {
+  const grid = document.getElementById('icmsStateGrid');
+  grid.innerHTML = '';
+
+  ESTADOS_BRASIL.forEach(uf => {
+    const box = document.createElement('div');
+    box.className = 'state-input-box';
+    box.innerHTML = `
+      <label for="rate_${uf}">${uf} (%)</label>
+      <input type="number" id="rate_${uf}" value="${currentCustomIcmsTable[uf] || 18}" step="0.5" min="0">
+    `;
+    grid.appendChild(box);
+  });
+
+  document.getElementById('modalIcmsConfig').style.display = 'flex';
+}
+
+function closeIcmsModal() {
+  document.getElementById('modalIcmsConfig').style.display = 'none';
+}
+
+function saveCustomIcmsTable() {
+  ESTADOS_BRASIL.forEach(uf => {
+    const el = document.getElementById(`rate_${uf}`);
+    if (el) {
+      currentCustomIcmsTable[uf] = parseFloat(el.value) || 18;
+    }
+  });
+  closeIcmsModal();
+  fetchIcmsRates();
+  updateCalculations();
+  showToast('Alíquotas de ICMS por estado salvas!');
+}
+
+function resetIcmsTableToDefault() {
+  currentCustomIcmsTable = { ...DEFAULT_ICMS_RATES };
+  openIcmsModal();
+}
+
+function openExportModal() {
+  const formData = getFormData();
+  
+  const apiPayload = {
+    produto: formData.produto,
+    atividade: 'Comercio',
+    regimeTributario: formData.regimeTributario,
+    ufOrigem: formData.ufOrigem,
+    ufDestino: formData.ufDestino,
+    custoCompra: Number(formData.custoCompra),
+    frete: Number(formData.frete),
+    ipiPct: Number(formData.ipiPct),
+    desconto: Number(formData.desconto),
+    aliquotaIcmsEntradaOverride: formData.aliquotaIcmsEntradaOverride ? Number(formData.aliquotaIcmsEntradaOverride) : undefined,
+    creditoIcmsEntradaOverride: formData.creditoIcmsEntradaOverride ? Number(formData.creditoIcmsEntradaOverride) : undefined,
+    antecipacaoParcialManual: formData.antecipacaoParcialManual ? Number(formData.antecipacaoParcialManual) : undefined,
+    aliquotaSaidaOverride: formData.aliquotaSaidaOverride ? Number(formData.aliquotaSaidaOverride) : undefined,
+    comissaoVendaPct: Number(formData.comissaoVendaPct),
+    taxaCartaoPct: Number(formData.taxaCartaoPct),
+    taxaMarketplacePct: Number(formData.taxaMarketplacePct),
+    despesasVariaveisPct: Number(formData.despesasVariaveisPct),
+    margemLucroDesejadaPct: Number(formData.margemLucroDesejadaPct)
+  };
+
+  const codeString = `// Exemplo de Chamada no Backend do seu Sistema
+fetch('https://seu-dominio.com/api/tax/calculate', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'x-api-key': 'dev-secret-key'
+  },
+  body: JSON.stringify(${JSON.stringify(apiPayload, null, 2)})
+});`;
+
+  document.getElementById('jsonExportCode').textContent = codeString;
+  document.getElementById('modalExportJson').style.display = 'flex';
+}
+
+function closeExportModal() {
+  document.getElementById('modalExportJson').style.display = 'none';
+}
+
+function copyJsonExportCode() {
+  const code = document.getElementById('jsonExportCode').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Código JSON copiado para a área de transferência!');
+  });
 }
 
 /**
@@ -105,9 +210,6 @@ function setupXmlDropzone() {
   });
 }
 
-/**
- * Lê o arquivo XML e envia para a API de parse
- */
 function handleXmlFile(file) {
   if (!file.name.toLowerCase().endsWith('.xml')) {
     alert('Por favor, selecione um arquivo XML de NF-e válido.');
@@ -127,7 +229,7 @@ function handleXmlFile(file) {
       const resJson = await response.json();
       if (resJson.success && resJson.nfe) {
         applyParsedNfeData(resJson.nfe);
-        showToast(`NF-e importada com sucesso! (${resJson.nfe.totalItens} item(ns))`);
+        showToast(`NF-e importada! (${resJson.nfe.totalItens} item(ns))`);
       } else {
         alert('Não foi possível ler as informações deste XML de NF-e.');
       }
@@ -139,9 +241,6 @@ function handleXmlFile(file) {
   reader.readAsText(file);
 }
 
-/**
- * Aplica os dados extraídos do XML nos campos do formulário
- */
 function applyParsedNfeData(nfe) {
   if (nfe.ufOrigem) {
     document.getElementById('ufOrigem').value = nfe.ufOrigem;
@@ -162,6 +261,7 @@ function applyParsedNfeData(nfe) {
     if (p.desconto) document.getElementById('desconto').value = p.desconto;
     if (p.ipiPct) document.getElementById('ipiPct').value = p.ipiPct;
     if (p.aliquotaIcmsEntrada) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
+    if (p.creditoIcmsEntrada) document.getElementById('creditoIcmsEntradaOverride').value = p.creditoIcmsEntrada;
   }
 
   fetchIcmsRates();
@@ -170,7 +270,7 @@ function applyParsedNfeData(nfe) {
 }
 
 /**
- * Configura o autocomplete de NCM via BrasilAPI
+ * Autocomplete NCM
  */
 function setupNcmSearch() {
   const ncmInput = document.getElementById('ncmInput');
@@ -240,7 +340,7 @@ async function consultarNcmEspecifico(code) {
 }
 
 /**
- * Busca alíquotas de ICMS ao alterar UF
+ * Alíquotas de ICMS
  */
 async function fetchIcmsRates() {
   const ufOrigem = document.getElementById('ufOrigem').value;
@@ -254,12 +354,15 @@ async function fetchIcmsRates() {
       const hintEntrada = document.getElementById('hintIcmsEntrada');
       const hintAntecipacao = document.getElementById('hintAntecipacao');
 
+      const aliquotaInternaCustom = currentCustomIcmsTable[ufDestino] || data.aliquotaInternaDestinoPct;
+
       if (ufOrigem === ufDestino) {
-        hintEntrada.textContent = `Interno ${data.aliquotaInternaDestinoPct}% (${ufOrigem})`;
+        hintEntrada.textContent = `Interno ${aliquotaInternaCustom}% (${ufOrigem})`;
         hintAntecipacao.textContent = `Operação interna (sem DIFAL)`;
       } else {
         hintEntrada.textContent = `Interestadual ${data.aliquotaInterestadualPct}% (${ufOrigem} → ${ufDestino})`;
-        hintAntecipacao.textContent = `DIFAL Entrada ${data.aliquotaAntecipacaoPct}% (${ufDestino} ${data.aliquotaInternaDestinoPct}% - ${data.aliquotaInterestadualPct}%)`;
+        const difalPct = (aliquotaInternaCustom - data.aliquotaInterestadualPct).toFixed(1);
+        hintAntecipacao.textContent = `DIFAL Entrada ${difalPct}% (${ufDestino} ${aliquotaInternaCustom}% - ${data.aliquotaInterestadualPct}%)`;
       }
     }
   } catch (err) {
@@ -267,11 +370,8 @@ async function fetchIcmsRates() {
   }
 }
 
-/**
- * Envia formulário para o cálculo
- */
-async function updateCalculations() {
-  const formData = {
+function getFormData() {
+  return {
     produto: document.getElementById('produto').value || 'Produto Sem Nome',
     regimeTributario: document.getElementById('regimeTributario').value,
     ufOrigem: document.getElementById('ufOrigem').value,
@@ -281,11 +381,20 @@ async function updateCalculations() {
     ipiPct: document.getElementById('ipiPct').value,
     desconto: document.getElementById('desconto').value,
     aliquotaIcmsEntradaOverride: document.getElementById('aliquotaIcmsEntradaOverride').value,
+    creditoIcmsEntradaOverride: document.getElementById('creditoIcmsEntradaOverride').value,
     antecipacaoParcialManual: document.getElementById('antecipacaoParcialManual').value,
     aliquotaSaidaOverride: document.getElementById('aliquotaSaidaOverride').value,
+    comissaoVendaPct: document.getElementById('comissaoVendaPct').value,
+    taxaCartaoPct: document.getElementById('taxaCartaoPct').value,
+    taxaMarketplacePct: document.getElementById('taxaMarketplacePct').value,
     despesasVariaveisPct: document.getElementById('despesasVariaveisPct').value,
-    margemLucroDesejadaPct: document.getElementById('margemLucroDesejadaPct').value
+    margemLucroDesejadaPct: document.getElementById('margemLucroDesejadaPct').value,
+    tabelaIcmsCustom: currentCustomIcmsTable
   };
+}
+
+async function updateCalculations() {
+  const formData = getFormData();
 
   try {
     const response = await fetch('/api/tax/calculate-public', {
@@ -296,6 +405,7 @@ async function updateCalculations() {
 
     const result = await response.json();
     if (result.success) {
+      lastCalculatedData = result.data;
       renderResults(result.data);
     }
   } catch (error) {
@@ -303,9 +413,6 @@ async function updateCalculations() {
   }
 }
 
-/**
- * Atualiza o DOM com os resultados
- */
 function renderResults(data) {
   document.getElementById('badgeRegime').textContent = data.regimeTributario;
   document.getElementById('resPrecoVenda').textContent = formatCurrency(data.saida.precoVendaSugerido);
@@ -363,8 +470,9 @@ function syncUrlParams() {
   const fields = [
     'produto', 'ncmInput', 'regimeTributario', 'ufOrigem', 'ufDestino',
     'custoCompra', 'frete', 'ipiPct', 'desconto',
-    'aliquotaIcmsEntradaOverride', 'antecipacaoParcialManual',
-    'aliquotaSaidaOverride', 'despesasVariaveisPct', 'margemLucroDesejadaPct'
+    'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialManual',
+    'aliquotaSaidaOverride', 'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct',
+    'despesasVariaveisPct', 'margemLucroDesejadaPct'
   ];
 
   fields.forEach(id => {
