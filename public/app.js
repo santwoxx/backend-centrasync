@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com ICMS Isolado
+ * CentralSync - Simulador de Precificação & Impostos com Abatimentos de ICMS e DIFAL (R$ 47,06)
  */
 
 const ESTADOS_BRASIL = [
@@ -501,12 +501,13 @@ function renderResults(data) {
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
 
+  // ANTECIPAÇÃO PARCIAL (13.5% = R$ 47,06)
   document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
     ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na entrada)`
     : `Sem antecipação apurada`;
   document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
 
-  // ICMS A PAGAR (R$ 73,62)
+  // ICMS A PAGAR (110,75 - 23,63 - 47,06 = R$ 40,06)
   if (document.getElementById('tabIcmsPagar')) {
     document.getElementById('tabIcmsPagar').textContent = formatCurrency(data.demonstrativoFiscal.saldoIcmsRecolher);
   }
@@ -518,7 +519,7 @@ function renderResults(data) {
     document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
 
-  // TOTAL DE IMPOSTOS A RECOLHER (R$ 110,63)
+  // TOTAL DE IMPOSTOS A RECOLHER (40,06 + 37,01 = R$ 77,07)
   document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Impostos Federais`;
   document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
