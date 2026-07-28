@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com Carga Efetiva Ajustada (160 e poucos)
+ * CentralSync - Simulador de Precificação & Impostos com ICMS Isolado
  */
 
 const ESTADOS_BRASIL = [
@@ -438,13 +438,21 @@ function renderEmptyResults(formData) {
   if (document.getElementById('tabCustoFormado')) {
     document.getElementById('tabCustoFormado').textContent = 'R$ 0,00';
   }
-  document.getElementById('tabSaidaDet').textContent = 'Aguardando dados...';
-  document.getElementById('tabImpostoSaida').textContent = 'R$ 0,00';
+  if (document.getElementById('tabIcmsSaida')) {
+    document.getElementById('tabIcmsSaidaDet').textContent = '0,00% sobre R$ 0,00';
+    document.getElementById('tabIcmsSaida').textContent = 'R$ 0,00';
+  }
   document.getElementById('tabCreditoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabCreditoIcms').textContent = '- R$ 0,00';
   document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
-  document.getElementById('tabAntecipacao').textContent = '+ R$ 0,00';
+  document.getElementById('tabAntecipacao').textContent = '- R$ 0,00';
   
+  if (document.getElementById('tabIcmsPagar')) {
+    document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
+  }
+  if (document.getElementById('tabFederaisVal')) {
+    document.getElementById('tabFederaisVal').textContent = 'R$ 0,00';
+  }
   document.getElementById('tabCargaEfetivaDet').textContent = '% Total em relação à Venda';
   document.getElementById('tabImpostoLiquido').textContent = 'R$ 0,00';
 }
@@ -484,28 +492,35 @@ function renderResults(data) {
     document.getElementById('tabCustoFormado').textContent = formatCurrency(data.entrada.custoFormado);
   }
 
-  // Impostos de Saída (R$ 147,75)
-  let textoDetSaida = `${data.saida.cargaTributariaSaidaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
-  const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
-  if (somaFederais > 0) {
-    textoDetSaida += ` (ICMS: ${data.saida.aliquotaIcmsVendaPct}%, Federais: ${somaFederais}%)`;
+  // ICMS SOBRE VENDAS ISOLADO (20.5% = R$ 110,75)
+  if (document.getElementById('tabIcmsSaida')) {
+    document.getElementById('tabIcmsSaidaDet').textContent = `${data.saida.aliquotaIcmsVendaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    document.getElementById('tabIcmsSaida').textContent = formatCurrency(data.saida.icmsSaidaValor);
   }
-  document.getElementById('tabSaidaDet').textContent = textoDetSaida;
-  document.getElementById('tabImpostoSaida').textContent = formatCurrency(data.saida.impostosSaidaValor);
 
-  // Crédito de ICMS de Entrada (- R$ 23,63)
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
 
-  // Antecipação Parcial / DIFAL (+ R$ 45,58)
   document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
     ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na entrada)`
     : `Sem antecipação apurada`;
-  document.getElementById('tabAntecipacao').textContent = `+ ${formatCurrency(data.entrada.antecipacaoParcial)}`;
+  document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
 
-  // CARGA TRIBUTÁRIA EFETIVA TOTAL (= R$ 169,70 = uns 160 e poucos)
-  document.getElementById('tabCargaEfetivaDet').textContent = `Impostos Saída - Crédito + Antecipação Parcial`;
-  document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.impostoTotalEfetivo)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
+  // ICMS A PAGAR (R$ 73,62)
+  if (document.getElementById('tabIcmsPagar')) {
+    document.getElementById('tabIcmsPagar').textContent = formatCurrency(data.demonstrativoFiscal.saldoIcmsRecolher);
+  }
+
+  // IMPOSTOS FEDERAIS (R$ 37,01)
+  if (document.getElementById('tabFederaisVal')) {
+    const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
+    document.getElementById('tabFederaisDet').textContent = `${somaFederais}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
+  }
+
+  // TOTAL DE IMPOSTOS A RECOLHER (R$ 110,63)
+  document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Impostos Federais`;
+  document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
 
 function formatCurrency(val) {
