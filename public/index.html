@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <!-- Card 3: Saída (Venda & Impostos Federais) -->
+        <!-- Card 3: Saída (Venda, Impostos Federais, Frete & Montagem) -->
         <div class="card-box card-saida">
           <div class="card-title">
             <span class="icon">📤</span>
@@ -166,29 +166,29 @@
           <div class="form-grid-4">
             <div class="form-group">
               <label for="pisPct">PIS (%)</label>
-              <input type="number" id="pisPct" value="0.00" step="0.01" min="0">
+              <input type="number" id="pisPct" value="0.65" step="0.01" min="0">
               <span class="field-hint">% sob Venda</span>
             </div>
             <div class="form-group">
               <label for="cofinsPct">COFINS (%)</label>
-              <input type="number" id="cofinsPct" value="0.00" step="0.01" min="0">
+              <input type="number" id="cofinsPct" value="3.00" step="0.01" min="0">
               <span class="field-hint">% sob Venda</span>
             </div>
             <div class="form-group">
               <label for="csllPct">CSLL (%)</label>
-              <input type="number" id="csllPct" value="0.00" step="0.01" min="0">
+              <input type="number" id="csllPct" value="1.20" step="0.01" min="0">
               <span class="field-hint">% sob Venda</span>
             </div>
             <div class="form-group">
               <label for="irpjPct">IRPJ (%)</label>
-              <input type="number" id="irpjPct" value="0.00" step="0.01" min="0">
+              <input type="number" id="irpjPct" value="2.00" step="0.01" min="0">
               <span class="field-hint">% sob Venda</span>
             </div>
           </div>
 
           <div class="divider-line"></div>
 
-          <!-- Detalhamento de Despesas Variáveis -->
+          <!-- Detalhamento de Despesas Variáveis sobre Venda -->
           <div class="form-grid-3">
             <div class="form-group">
               <label for="comissaoVendaPct">Comissão Vendas (%)</label>
@@ -201,6 +201,19 @@
             <div class="form-group">
               <label for="taxaMarketplacePct">Marketplace (%)</label>
               <input type="number" id="taxaMarketplacePct" value="0" step="0.5" min="0">
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="freteVendaPct">Frete Vendas (%)</label>
+              <input type="number" id="freteVendaPct" value="0" step="0.5" min="0">
+              <span class="field-hint">% sob Venda</span>
+            </div>
+            <div class="form-group">
+              <label for="montagemPct">Montagem (%)</label>
+              <input type="number" id="montagemPct" value="0" step="0.5" min="0">
+              <span class="field-hint">% sob Venda</span>
             </div>
           </div>
 
@@ -227,7 +240,7 @@
             <span>Preço de Venda Sugerido</span>
             <span class="badge-tag" id="badgeRegime">Lucro Presumido</span>
           </div>
-          <div class="hero-price" id="resPrecoVenda">R$ 0,00</div>
+          <div class="hero-price" id="resPrecoVenda">R$ 540,23</div>
           <div class="hero-subgrid">
             <div class="sub-item">
               <span class="label">Lucro Líquido (R$)</span>
@@ -235,11 +248,11 @@
             </div>
             <div class="sub-item">
               <span class="label">Custo Líquido Real</span>
-              <span class="value" id="resCustoLiquido">R$ 0,00</span>
+              <span class="value" id="resCustoLiquido">R$ 338,46</span>
             </div>
             <div class="sub-item">
               <span class="label">Markup Multiplicador</span>
-              <span class="value" id="resMarkup">0.00x</span>
+              <span class="value" id="resMarkup">1.60x</span>
             </div>
           </div>
         </div>
@@ -251,16 +264,16 @@
             <h2>Composição do Preço de Venda</h2>
           </div>
           <div class="composition-bar">
-            <div class="bar-segment bar-custo" id="barCusto" style="width: 50%" title="Custo Líquido"></div>
-            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 20%" title="Impostos"></div>
+            <div class="bar-segment bar-custo" id="barCusto" style="width: 62.7%" title="Custo Líquido"></div>
+            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 27.4%" title="Impostos"></div>
             <div class="bar-segment bar-despesas" id="barDespesas" style="width: 10%" title="Despesas Variáveis"></div>
-            <div class="bar-segment bar-lucro" id="barLucro" style="width: 20%" title="Lucro Líquido"></div>
+            <div class="bar-segment bar-lucro" id="barLucro" style="width: 0%" title="Lucro Líquido"></div>
           </div>
           <div class="composition-legend">
-            <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">0%</strong></div>
-            <div class="legend-item"><span class="dot dot-impostos"></span> Impostos: <strong id="legendImpostosPct">0%</strong></div>
-            <div class="legend-item"><span class="dot dot-despesas"></span> Despesas: <strong id="legendDespesasPct">0%</strong></div>
-            <div class="legend-item"><span class="dot dot-lucro"></span> Lucro: <strong id="legendLucroPct">0%</strong></div>
+            <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">62.7%</strong></div>
+            <div class="legend-item"><span class="dot dot-impostos"></span> Impostos: <strong id="legendImpostosPct">27.4%</strong></div>
+            <div class="legend-item"><span class="dot dot-despesas"></span> Despesas: <strong id="legendDespesasPct">10.0%</strong></div>
+            <div class="legend-item"><span class="dot dot-lucro"></span> Lucro: <strong id="legendLucroPct">0.0%</strong></div>
           </div>
         </div>
 
@@ -283,37 +296,37 @@
               <tr>
                 <td><strong>(+) Custo Bruto de Compra</strong></td>
                 <td>Valor da NF de Entrada</td>
-                <td class="text-right" id="tabCustoBruto">R$ 0,00</td>
+                <td class="text-right" id="tabCustoBruto">R$ 337,62</td>
               </tr>
               <tr>
                 <td>(+) Frete + IPI da Compra</td>
-                <td id="tabFreteIpiDet">Frete: R$ 0,00 | IPI: R$ 0,00</td>
-                <td class="text-right" id="tabFreteIpi">R$ 0,00</td>
+                <td id="tabFreteIpiDet">Frete: R$ 0,00 | IPI: R$ 10,97</td>
+                <td class="text-right" id="tabFreteIpi">R$ 10,97</td>
               </tr>
               <tr class="row-highlight-green">
                 <td><strong>(-) Crédito ICMS de Entrada</strong></td>
                 <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
-                <td class="text-right text-green" id="tabCreditoIcms">- R$ 0,00</td>
+                <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
               </tr>
               <tr class="row-highlight-amber">
                 <td><strong>(+) Antecipação Parcial / DIFAL</strong></td>
                 <td id="tabAntecipacaoDet">DIFAL/Antecipação Parcial (13.5% para BA)</td>
-                <td class="text-right text-amber" id="tabAntecipacao">+ R$ 0,00</td>
+                <td class="text-right text-amber" id="tabAntecipacao">+ R$ 13,50</td>
               </tr>
               <tr class="row-total-custo">
                 <td><strong>(=) Custo Líquido Formado</strong></td>
                 <td>Base real do produto</td>
-                <td class="text-right font-bold" id="tabCustoLiquidoReal">R$ 0,00</td>
+                <td class="text-right font-bold" id="tabCustoLiquidoReal">R$ 338,46</td>
               </tr>
               <tr>
                 <td><strong>(+) Imposto de Saída (Venda)</strong></td>
-                <td id="tabSaidaDet">20.5% sob Venda</td>
-                <td class="text-right text-purple" id="tabImpostoSaida">R$ 0,00</td>
+                <td id="tabSaidaDet">27.35% sobre R$ 540.23 (ICMS: 20.5%, PIS/COFINS/CSLL/IRPJ: 6.85%)</td>
+                <td class="text-right text-purple" id="tabImpostoSaida">R$ 147,75</td>
               </tr>
               <tr class="row-total-final">
                 <td><strong>(=) Carga Tributária Efetiva</strong></td>
                 <td id="tabCargaEfetivaDet">Impostos Líquidos (Saída - Créditos) / Venda</td>
-                <td class="text-right font-bold text-primary" id="tabCargaEfetiva">0,00%</td>
+                <td class="text-right font-bold text-primary" id="tabCargaEfetiva">25.47%</td>
               </tr>
             </tbody>
           </table>

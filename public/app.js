@@ -144,6 +144,8 @@ function openExportModal() {
     comissaoVendaPct: Number(formData.comissaoVendaPct || 0),
     taxaCartaoPct: Number(formData.taxaCartaoPct || 0),
     taxaMarketplacePct: Number(formData.taxaMarketplacePct || 0),
+    freteVendaPct: Number(formData.freteVendaPct || 0),
+    montagemPct: Number(formData.montagemPct || 0),
     despesasVariaveisPct: Number(formData.despesasVariaveisPct || 0),
     margemLucroDesejadaPct: Number(formData.margemLucroDesejadaPct || 0)
   };
@@ -398,6 +400,8 @@ function getFormData() {
     comissaoVendaPct: document.getElementById('comissaoVendaPct').value,
     taxaCartaoPct: document.getElementById('taxaCartaoPct').value,
     taxaMarketplacePct: document.getElementById('taxaMarketplacePct').value,
+    freteVendaPct: document.getElementById('freteVendaPct').value,
+    montagemPct: document.getElementById('montagemPct').value,
     despesasVariaveisPct: document.getElementById('despesasVariaveisPct').value,
     margemLucroDesejadaPct: document.getElementById('margemLucroDesejadaPct').value,
     tabelaIcmsCustom: currentCustomIcmsTable
@@ -502,8 +506,9 @@ function renderResults(data) {
   document.getElementById('tabCustoLiquidoReal').textContent = formatCurrency(data.entrada.custoLiquido);
 
   let textoDetSaida = `${data.saida.cargaTributariaSaidaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
-  if (data.saida.pisPct > 0 || data.saida.cofinsPct > 0 || data.saida.csllPct > 0 || data.saida.irpjPct > 0) {
-    textoDetSaida += ` (ICMS: ${data.saida.aliquotaIcmsVendaPct}%, PIS/COFINS/CSLL/IRPJ: ${(data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct)}%)`;
+  const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
+  if (somaFederais > 0) {
+    textoDetSaida += ` (ICMS: ${data.saida.aliquotaIcmsVendaPct}%, PIS/COFINS/CSLL/IRPJ: ${somaFederais}%)`;
   }
 
   document.getElementById('tabSaidaDet').textContent = textoDetSaida;
@@ -524,7 +529,7 @@ function syncUrlParams() {
     'custoCompra', 'fretePct', 'ipiPct', 'desconto',
     'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialManual',
     'aliquotaSaidaOverride', 'pisPct', 'cofinsPct', 'csllPct', 'irpjPct',
-    'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct',
+    'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct', 'freteVendaPct', 'montagemPct',
     'despesasVariaveisPct', 'margemLucroDesejadaPct'
   ];
 

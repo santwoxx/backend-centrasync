@@ -1,6 +1,6 @@
 /**
  * Motor Tributário / Calculadora Fiscal Completa e Totalmente Configurável
- * Suporte a ICMS por Estado (Entrada e Saída), PIS, COFINS, CSLL, IRPJ sobre a Venda
+ * Suporte a ICMS por Estado (Entrada e Saída), PIS, COFINS, CSLL, IRPJ, Frete Venda e Montagem sobre a Venda
  */
 
 const ALIQUOTAS_ICMS_ESTADOS_PADRAO = {
@@ -42,8 +42,8 @@ function calcularPrecificacao(input) {
 
     // Entrada (Compra)
     custoCompra = 337.616,
-    fretePct = 0, // % de frete sobre a compra
-    frete = 0, // valor fixo de frete (se fornecido)
+    fretePct = 0,
+    frete = 0,
     ipiPct = 3.25,
     ipi = 0,
     desconto = 0,
@@ -53,17 +53,19 @@ function calcularPrecificacao(input) {
     creditoIcmsEntradaOverride = null,
     antecipacaoParcialManual = null,
     
-    // Saída (Venda) & Impostos sobre a Venda
-    aliquotaSaidaOverride = null, // Alíquota ICMS Saída (%)
-    pisPct = 0, // PIS % sobre venda
-    cofinsPct = 0, // COFINS % sobre venda
-    csllPct = 0, // CSLL % sobre venda
-    irpjPct = 0, // IRPJ % sobre venda
+    // Saída (Venda) & Impostos sobre Venda
+    aliquotaSaidaOverride = null,
+    pisPct = 0.65,
+    cofinsPct = 3,
+    csllPct = 1.2,
+    irpjPct = 2,
 
-    // Despesas Variáveis (%)
+    // Despesas Variáveis sobre Venda (%)
     comissaoVendaPct = 5,
     taxaCartaoPct = 5,
     taxaMarketplacePct = 0,
+    freteVendaPct = 0, // Frete de venda em %
+    montagemPct = 0, // Montagem em %
     outrasDespesasVariaveisPct = 0,
     despesasVariaveisPct = 10,
 
@@ -74,7 +76,7 @@ function calcularPrecificacao(input) {
   const descontoValor = Number(desconto) || 0;
   const outrasDespesasEntradaValor = Number(outrasDespesasEntrada) || 0;
   
-  // 1. Frete (em % ou valor)
+  // 1. Frete de Entrada (em % ou valor)
   const freteValor = frete ? Number(frete) : custoBase * (Number(fretePct) / 100);
 
   // 2. IPI
@@ -115,8 +117,8 @@ function calcularPrecificacao(input) {
   // 4. Formação do Custo Líquido Real
   const custoLiquido = custoBase + freteValor + valorIpi + outrasDespesasEntradaValor - descontoValor - creditoIcmsEntrada + antecipacaoParcial;
 
-  // 5. Despesas Variáveis
-  const somaDespesasDetalhadas = Number(comissaoVendaPct) + Number(taxaCartaoPct) + Number(taxaMarketplacePct) + Number(outrasDespesasVariaveisPct);
+  // 5. Despesas Variáveis sobre Venda (Comissão, Cartão, Marketplace, Frete Venda, Montagem)
+  const somaDespesasDetalhadas = Number(comissaoVendaPct) + Number(taxaCartaoPct) + Number(taxaMarketplacePct) + Number(freteVendaPct) + Number(montagemPct) + Number(outrasDespesasVariaveisPct);
   const despesasVariaveisFinalPct = somaDespesasDetalhadas > 0 ? somaDespesasDetalhadas : Number(despesasVariaveisPct);
   const despesasVariaveis = despesasVariaveisFinalPct / 100;
 
@@ -161,6 +163,8 @@ function calcularPrecificacao(input) {
   const irpjSaidaValor = precoVenda * (pIrpj / 100);
 
   const despesasVariaveisValor = precoVenda * despesasVariaveis;
+  const freteVendaValor = precoVenda * (Number(freteVendaPct) / 100);
+  const montagemValor = precoVenda * (Number(montagemPct) / 100);
   const lucroLiquidoValor = precoVenda * margemLucroDesejada;
 
   const markupSobreCustoBruto = custoBase > 0 ? (precoVenda / custoBase) : 0;
@@ -210,6 +214,11 @@ function calcularPrecificacao(input) {
       comissaoVendaPct: Number(comissaoVendaPct),
       taxaCartaoPct: Number(taxaCartaoPct),
       taxaMarketplacePct: Number(taxaMarketplacePct),
+      freteVendaPct: Number(freteVendaPct),
+      freteVendaValor: Number(freteVendaValor.toFixed(2)),
+      montagemPct: Number(montagemPct),
+      montagemValor: Number(montagemValor.toFixed(2)),
+
       despesasVariaveisPct: Number(despesasVariaveisFinalPct.toFixed(2)),
       despesasVariaveisValor: Number(despesasVariaveisValor.toFixed(2)),
       margemLucroDesejadaPct: Number((margemLucroDesejada * 100).toFixed(2)),
