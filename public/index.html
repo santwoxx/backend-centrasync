@@ -133,11 +133,11 @@
             <div class="form-group">
               <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
               <input type="number" id="creditoIcmsEntradaOverride" value="23.63312" step="0.00001">
-              <span class="field-hint">Definir valor fixo de crédito</span>
+              <span class="field-hint">Crédito futuro a abater no imposto</span>
             </div>
             <div class="form-group">
-              <label for="antecipacaoParcialManual">Antecipação / DIFAL (R$)</label>
-              <input type="number" id="antecipacaoParcialManual" value="13.5" step="0.01">
+              <label for="antecipacaoParcialPct">Antecipação / DIFAL (%)</label>
+              <input type="number" id="antecipacaoParcialPct" value="13.5" step="0.1">
               <span class="field-hint" id="hintAntecipacao">DIFAL Entrada 13.5% (BA 20.5% - 7%)</span>
             </div>
           </div>
@@ -303,30 +303,30 @@
                 <td id="tabFreteIpiDet">Frete: R$ 0,00 | IPI: R$ 10,97</td>
                 <td class="text-right" id="tabFreteIpi">R$ 10,97</td>
               </tr>
+              <tr class="row-total-custo">
+                <td><strong>(=) Custo Formado do Produto</strong></td>
+                <td>Base da Mercadoria</td>
+                <td class="text-right font-bold" id="tabCustoFormado">R$ 348,59</td>
+              </tr>
+              <tr>
+                <td><strong>(+) Imposto de Saída Bruto (Venda)</strong></td>
+                <td id="tabSaidaDet">27.35% sobre R$ 540.23 (ICMS: 20.5%, PIS/COFINS/CSLL/IRPJ: 6.85%)</td>
+                <td class="text-right text-purple" id="tabImpostoSaida">R$ 147,75</td>
+              </tr>
               <tr class="row-highlight-green">
-                <td><strong>(-) Crédito ICMS de Entrada</strong></td>
+                <td><strong>(-) Abatimento: Crédito ICMS Entrada</strong></td>
                 <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
                 <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
               </tr>
               <tr class="row-highlight-amber">
-                <td><strong>(+) Antecipação Parcial / DIFAL</strong></td>
-                <td id="tabAntecipacaoDet">DIFAL/Antecipação Parcial (13.5% para BA)</td>
-                <td class="text-right text-amber" id="tabAntecipacao">+ R$ 13,50</td>
-              </tr>
-              <tr class="row-total-custo">
-                <td><strong>(=) Custo Líquido Formado</strong></td>
-                <td>Base real do produto</td>
-                <td class="text-right font-bold" id="tabCustoLiquidoReal">R$ 338,46</td>
-              </tr>
-              <tr>
-                <td><strong>(+) Imposto de Saída (Venda)</strong></td>
-                <td id="tabSaidaDet">27.35% sobre R$ 540.23 (ICMS: 20.5%, PIS/COFINS/CSLL/IRPJ: 6.85%)</td>
-                <td class="text-right text-purple" id="tabImpostoSaida">R$ 147,75</td>
+                <td><strong>(-) Abatimento: Antecipação / DIFAL Já Pago</strong></td>
+                <td id="tabAntecipacaoDet">DIFAL Entrada 13.5% (recolhido na entrada)</td>
+                <td class="text-right text-amber" id="tabAntecipacao">- R$ 13,50</td>
               </tr>
               <tr class="row-total-final">
-                <td><strong>(=) Carga Tributária Efetiva</strong></td>
-                <td id="tabCargaEfetivaDet">Impostos Líquidos (Saída - Créditos) / Venda</td>
-                <td class="text-right font-bold text-primary" id="tabCargaEfetiva">25.47%</td>
+                <td><strong>(=) Imposto Líquido Efetivo a Recolher</strong></td>
+                <td id="tabCargaEfetivaDet">Saldo a Pagar (Saída - Crédito - DIFAL) / Venda</td>
+                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 110,62 (20.48%)</td>
               </tr>
             </tbody>
           </table>

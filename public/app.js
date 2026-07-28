@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com NFe, NCM, Impostos Federais & Exportação
+ * CentralSync - Simulador de Precificação & Impostos com NFe, NCM, Impostos Federais & Abatimentos Fiscais
  */
 
 const ESTADOS_BRASIL = [
@@ -74,7 +74,7 @@ function setupEventListeners() {
 }
 
 /**
- * Configura Modais
+ * Modais
  */
 function setupModals() {
   document.getElementById('btnOpenConfigModal').addEventListener('click', openIcmsModal);
@@ -135,7 +135,7 @@ function openExportModal() {
     desconto: Number(formData.desconto || 0),
     aliquotaIcmsEntradaOverride: formData.aliquotaIcmsEntradaOverride ? Number(formData.aliquotaIcmsEntradaOverride) : undefined,
     creditoIcmsEntradaOverride: formData.creditoIcmsEntradaOverride ? Number(formData.creditoIcmsEntradaOverride) : undefined,
-    antecipacaoParcialManual: formData.antecipacaoParcialManual ? Number(formData.antecipacaoParcialManual) : undefined,
+    antecipacaoParcialPct: formData.antecipacaoParcialPct ? Number(formData.antecipacaoParcialPct) : undefined,
     aliquotaSaidaOverride: formData.aliquotaSaidaOverride ? Number(formData.aliquotaSaidaOverride) : undefined,
     pisPct: Number(formData.pisPct || 0),
     cofinsPct: Number(formData.cofinsPct || 0),
@@ -391,7 +391,7 @@ function getFormData() {
     desconto: document.getElementById('desconto').value,
     aliquotaIcmsEntradaOverride: document.getElementById('aliquotaIcmsEntradaOverride').value,
     creditoIcmsEntradaOverride: document.getElementById('creditoIcmsEntradaOverride').value,
-    antecipacaoParcialManual: document.getElementById('antecipacaoParcialManual').value,
+    antecipacaoParcialPct: document.getElementById('antecipacaoParcialPct').value,
     aliquotaSaidaOverride: document.getElementById('aliquotaSaidaOverride').value,
     pisPct: document.getElementById('pisPct').value,
     cofinsPct: document.getElementById('cofinsPct').value,
@@ -453,10 +453,13 @@ function renderEmptyResults(formData) {
   document.getElementById('tabCustoBruto').textContent = 'R$ 0,00';
   document.getElementById('tabFreteIpiDet').textContent = 'Frete: R$ 0,00 | IPI: R$ 0,00';
   document.getElementById('tabFreteIpi').textContent = 'R$ 0,00';
+  if (document.getElementById('tabCustoFormado')) {
+    document.getElementById('tabCustoFormado').textContent = 'R$ 0,00';
+  }
   document.getElementById('tabCreditoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabCreditoIcms').textContent = '- R$ 0,00';
   document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
-  document.getElementById('tabAntecipacao').textContent = '+ R$ 0,00';
+  document.getElementById('tabAntecipacao').textContent = '- R$ 0,00';
   document.getElementById('tabCustoLiquidoReal').textContent = 'R$ 0,00';
   document.getElementById('tabSaidaDet').textContent = 'Aguardando dados...';
   document.getElementById('tabImpostoSaida').textContent = 'R$ 0,00';
@@ -495,13 +498,17 @@ function renderResults(data) {
   document.getElementById('tabFreteIpiDet').textContent = `Frete: ${formatCurrency(data.entrada.frete)} | IPI: ${formatCurrency(data.entrada.ipi)}`;
   document.getElementById('tabFreteIpi').textContent = formatCurrency(freteEipi);
 
+  if (document.getElementById('tabCustoFormado')) {
+    document.getElementById('tabCustoFormado').textContent = formatCurrency(data.entrada.custoFormado);
+  }
+
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
 
   document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
-    ? `DIFAL/Antecipação Parcial (${data.entrada.aliquotaAntecipacaoPct}% para ${data.ufDestino})`
+    ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na entrada)`
     : `Sem antecipação apurada`;
-  document.getElementById('tabAntecipacao').textContent = `+ ${formatCurrency(data.entrada.antecipacaoParcial)}`;
+  document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
 
   document.getElementById('tabCustoLiquidoReal').textContent = formatCurrency(data.entrada.custoLiquido);
 
@@ -514,8 +521,12 @@ function renderResults(data) {
   document.getElementById('tabSaidaDet').textContent = textoDetSaida;
   document.getElementById('tabImpostoSaida').textContent = formatCurrency(data.saida.impostosSaidaValor);
 
-  document.getElementById('tabCargaEfetivaDet').textContent = `Impostos Líquidos (Saída - Créditos) / Venda`;
-  document.getElementById('tabCargaEfetiva').textContent = `${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%`;
+  document.getElementById('tabCargaEfetivaDet').textContent = `Imposto Efetivo a Pagar (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
+  if (document.getElementById('tabImpostoLiquido')) {
+    document.getElementById('tabImpostoLiquido').textContent = formatCurrency(data.demonstrativoFiscal.saldoImpostoRecolher);
+  } else {
+    document.getElementById('tabCargaEfetiva').textContent = formatCurrency(data.demonstrativoFiscal.saldoImpostoRecolher);
+  }
 }
 
 function formatCurrency(val) {
@@ -527,7 +538,7 @@ function syncUrlParams() {
   const fields = [
     'produto', 'ncmInput', 'regimeTributario', 'ufOrigem', 'ufDestino',
     'custoCompra', 'fretePct', 'ipiPct', 'desconto',
-    'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialManual',
+    'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialPct',
     'aliquotaSaidaOverride', 'pisPct', 'cofinsPct', 'csllPct', 'irpjPct',
     'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct', 'freteVendaPct', 'montagemPct',
     'despesasVariaveisPct', 'margemLucroDesejadaPct'
