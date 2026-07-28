@@ -124,24 +124,24 @@ function openExportModal() {
   const formData = getFormData();
   
   const apiPayload = {
-    produto: formData.produto,
+    produto: formData.produto || 'Produto Exemplo',
     atividade: 'Comercio',
     regimeTributario: formData.regimeTributario,
     ufOrigem: formData.ufOrigem,
     ufDestino: formData.ufDestino,
-    custoCompra: Number(formData.custoCompra),
-    frete: Number(formData.frete),
-    ipiPct: Number(formData.ipiPct),
-    desconto: Number(formData.desconto),
+    custoCompra: Number(formData.custoCompra || 0),
+    frete: Number(formData.frete || 0),
+    ipiPct: Number(formData.ipiPct || 0),
+    desconto: Number(formData.desconto || 0),
     aliquotaIcmsEntradaOverride: formData.aliquotaIcmsEntradaOverride ? Number(formData.aliquotaIcmsEntradaOverride) : undefined,
     creditoIcmsEntradaOverride: formData.creditoIcmsEntradaOverride ? Number(formData.creditoIcmsEntradaOverride) : undefined,
     antecipacaoParcialManual: formData.antecipacaoParcialManual ? Number(formData.antecipacaoParcialManual) : undefined,
     aliquotaSaidaOverride: formData.aliquotaSaidaOverride ? Number(formData.aliquotaSaidaOverride) : undefined,
-    comissaoVendaPct: Number(formData.comissaoVendaPct),
-    taxaCartaoPct: Number(formData.taxaCartaoPct),
-    taxaMarketplacePct: Number(formData.taxaMarketplacePct),
-    despesasVariaveisPct: Number(formData.despesasVariaveisPct),
-    margemLucroDesejadaPct: Number(formData.margemLucroDesejadaPct)
+    comissaoVendaPct: Number(formData.comissaoVendaPct || 0),
+    taxaCartaoPct: Number(formData.taxaCartaoPct || 0),
+    taxaMarketplacePct: Number(formData.taxaMarketplacePct || 0),
+    despesasVariaveisPct: Number(formData.despesasVariaveisPct || 0),
+    margemLucroDesejadaPct: Number(formData.margemLucroDesejadaPct || 0)
   };
 
   const codeString = `// Exemplo de Chamada no Backend do seu Sistema
@@ -256,12 +256,12 @@ function applyParsedNfeData(nfe) {
       document.getElementById('ncmInput').value = p.ncm;
       consultarNcmEspecifico(p.ncm);
     }
-    if (p.custoCompra) document.getElementById('custoCompra').value = p.custoCompra;
-    if (p.frete) document.getElementById('frete').value = p.frete;
-    if (p.desconto) document.getElementById('desconto').value = p.desconto;
-    if (p.ipiPct) document.getElementById('ipiPct').value = p.ipiPct;
-    if (p.aliquotaIcmsEntrada) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
-    if (p.creditoIcmsEntrada) document.getElementById('creditoIcmsEntradaOverride').value = p.creditoIcmsEntrada;
+    if (p.custoCompra !== undefined) document.getElementById('custoCompra').value = p.custoCompra;
+    if (p.frete !== undefined) document.getElementById('frete').value = p.frete;
+    if (p.desconto !== undefined) document.getElementById('desconto').value = p.desconto;
+    if (p.ipiPct !== undefined) document.getElementById('ipiPct').value = p.ipiPct;
+    if (p.aliquotaIcmsEntrada !== undefined) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
+    if (p.creditoIcmsEntrada !== undefined) document.getElementById('creditoIcmsEntradaOverride').value = p.creditoIcmsEntrada;
   }
 
   fetchIcmsRates();
@@ -372,7 +372,7 @@ async function fetchIcmsRates() {
 
 function getFormData() {
   return {
-    produto: document.getElementById('produto').value || 'Produto Sem Nome',
+    produto: document.getElementById('produto').value || '',
     regimeTributario: document.getElementById('regimeTributario').value,
     ufOrigem: document.getElementById('ufOrigem').value,
     ufDestino: document.getElementById('ufDestino').value,
@@ -396,6 +396,12 @@ function getFormData() {
 async function updateCalculations() {
   const formData = getFormData();
 
+  // Se custo for zero ou vazio, exibe o painel zerado limpo
+  if (!formData.custoCompra || Number(formData.custoCompra) === 0) {
+    renderEmptyResults(formData);
+    return;
+  }
+
   try {
     const response = await fetch('/api/tax/calculate-public', {
       method: 'POST',
@@ -413,6 +419,37 @@ async function updateCalculations() {
   }
 }
 
+function renderEmptyResults(formData) {
+  document.getElementById('badgeRegime').textContent = formData.regimeTributario || 'Simples Nacional';
+  document.getElementById('resPrecoVenda').textContent = 'R$ 0,00';
+  document.getElementById('resLucroLiquido').textContent = 'R$ 0,00 (0%)';
+  document.getElementById('resCustoLiquido').textContent = 'R$ 0,00';
+  document.getElementById('resMarkup').textContent = '0.00x';
+
+  document.getElementById('barCusto').style.width = '0%';
+  document.getElementById('barImpostos').style.width = '0%';
+  document.getElementById('barDespesas').style.width = '0%';
+  document.getElementById('barLucro').style.width = '0%';
+
+  document.getElementById('legendCustoPct').textContent = '0%';
+  document.getElementById('legendImpostosPct').textContent = '0%';
+  document.getElementById('legendDespesasPct').textContent = '0%';
+  document.getElementById('legendLucroPct').textContent = '0%';
+
+  document.getElementById('tabCustoBruto').textContent = 'R$ 0,00';
+  document.getElementById('tabFreteIpiDet').textContent = 'Frete: R$ 0,00 | IPI: R$ 0,00';
+  document.getElementById('tabFreteIpi').textContent = 'R$ 0,00';
+  document.getElementById('tabCreditoDet').textContent = 'Aguardando Custo...';
+  document.getElementById('tabCreditoIcms').textContent = '- R$ 0,00';
+  document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
+  document.getElementById('tabAntecipacao').textContent = '+ R$ 0,00';
+  document.getElementById('tabCustoLiquidoReal').textContent = 'R$ 0,00';
+  document.getElementById('tabSaidaDet').textContent = 'Aguardando dados...';
+  document.getElementById('tabImpostoSaida').textContent = 'R$ 0,00';
+  document.getElementById('tabCargaEfetivaDet').textContent = '% Total em relação à Venda';
+  document.getElementById('tabCargaEfetiva').textContent = '0,00%';
+}
+
 function renderResults(data) {
   document.getElementById('badgeRegime').textContent = data.regimeTributario;
   document.getElementById('resPrecoVenda').textContent = formatCurrency(data.saida.precoVendaSugerido);
@@ -422,7 +459,7 @@ function renderResults(data) {
 
   const preco = data.saida.precoVendaSugerido;
   if (preco > 0) {
-    const pctCusto = ((data.entrada.custoLiquido / preco) * 100).toFixed(1);
+    const pctCusto = Math.max(0, ((data.entrada.custoLiquido / preco) * 100)).toFixed(1);
     const pctImposto = data.saida.cargaTributariaSaidaPct.toFixed(1);
     const pctDespesas = data.saida.despesasVariaveisPct.toFixed(1);
     const pctLucro = data.saida.margemLucroDesejadaPct.toFixed(1);

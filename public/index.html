@@ -19,7 +19,7 @@
       <div class="header-brand">
         <div class="logo-badge">⚡ CentralSync</div>
         <h1>Calculadora Tributária & Precificação</h1>
-        <p class="subtitle">Painel totalmente configurável: ICMS por Estado, Leitor de NFe, NCM e Exportação de Configuração</p>
+        <p class="subtitle">Painel de testes fiscais com leitor de XML da NF-e, consulta NCM e ICMS por Estado</p>
       </div>
       <div class="header-actions">
         <button id="btnOpenConfigModal" class="btn-secondary" title="Configurar Tabela de ICMS dos Estados">
@@ -61,7 +61,7 @@
           <div class="form-grid-2">
             <div class="form-group">
               <label for="produto">Nome do Produto / Serviço</label>
-              <input type="text" id="produto" value="Sofa 3 Lugares Premium" placeholder="Ex: Xampu 350ml">
+              <input type="text" id="produto" placeholder="Ex: Cadeira de Escritório">
             </div>
             <div class="form-group">
               <label for="regimeTributario">Regime Tributário da Empresa</label>
@@ -88,7 +88,7 @@
           </div>
         </div>
 
-        <!-- Card 2: Entrada (Compra) Editável -->
+        <!-- Card 2: Entrada (Compra) Limpo -->
         <div class="card-box card-entrada">
           <div class="card-title">
             <span class="icon">📥</span>
@@ -102,22 +102,22 @@
             </div>
             <div class="form-group">
               <label for="custoCompra">Custo Bruto de Compra (R$)</label>
-              <input type="number" id="custoCompra" value="1200" step="0.01" min="0">
+              <input type="number" id="custoCompra" placeholder="0.00" step="0.01" min="0">
             </div>
           </div>
 
           <div class="form-grid-3">
             <div class="form-group">
               <label for="frete">Frete (R$)</label>
-              <input type="number" id="frete" value="90" step="0.01" min="0">
+              <input type="number" id="frete" placeholder="0.00" step="0.01" min="0">
             </div>
             <div class="form-group">
               <label for="ipiPct">IPI (%)</label>
-              <input type="number" id="ipiPct" value="0" step="0.1" min="0">
+              <input type="number" id="ipiPct" placeholder="0" step="0.1" min="0">
             </div>
             <div class="form-group">
               <label for="desconto">Desconto (R$)</label>
-              <input type="number" id="desconto" value="0" step="0.01" min="0">
+              <input type="number" id="desconto" placeholder="0.00" step="0.01" min="0">
             </div>
           </div>
 
@@ -142,7 +142,7 @@
           </div>
         </div>
 
-        <!-- Card 3: Saída (Venda & Despesas Detalhadas) Editável -->
+        <!-- Card 3: Saída (Venda) Limpo -->
         <div class="card-box card-saida">
           <div class="card-title">
             <span class="icon">📤</span>
@@ -156,7 +156,7 @@
             </div>
             <div class="form-group">
               <label for="aliquotaSaidaOverride">Alíquota Efetiva de Saída (%)</label>
-              <input type="number" id="aliquotaSaidaOverride" value="8.5" step="0.1">
+              <input type="number" id="aliquotaSaidaOverride" placeholder="Ex: 8.5" step="0.1">
               <span class="field-hint" id="hintAlíquotaSaida">Alíquota do DAS ou ICMS Venda</span>
             </div>
           </div>
@@ -165,27 +165,27 @@
           <div class="form-grid-3">
             <div class="form-group">
               <label for="comissaoVendaPct">Comissão Vendas (%)</label>
-              <input type="number" id="comissaoVendaPct" value="0" step="0.5" min="0">
+              <input type="number" id="comissaoVendaPct" placeholder="0" step="0.5" min="0">
             </div>
             <div class="form-group">
               <label for="taxaCartaoPct">Taxa de Cartão (%)</label>
-              <input type="number" id="taxaCartaoPct" value="0" step="0.5" min="0">
+              <input type="number" id="taxaCartaoPct" placeholder="0" step="0.5" min="0">
             </div>
             <div class="form-group">
               <label for="taxaMarketplacePct">Marketplace (%)</label>
-              <input type="number" id="taxaMarketplacePct" value="0" step="0.5" min="0">
+              <input type="number" id="taxaMarketplacePct" placeholder="0" step="0.5" min="0">
             </div>
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
               <label for="despesasVariaveisPct">Despesas Variáveis Totais (%)</label>
-              <input type="number" id="despesasVariaveisPct" value="8" step="0.5" min="0">
+              <input type="number" id="despesasVariaveisPct" placeholder="Ex: 8" step="0.5" min="0">
               <span class="field-hint">Total de despesas sobre a venda</span>
             </div>
             <div class="form-group">
               <label for="margemLucroDesejadaPct">Margem de Lucro Desejada (%)</label>
-              <input type="number" id="margemLucroDesejadaPct" value="18" step="0.5" min="0">
+              <input type="number" id="margemLucroDesejadaPct" placeholder="Ex: 18" step="0.5" min="0">
               <span class="field-hint">Lucro líquido pretendido</span>
             </div>
           </div>
@@ -204,7 +204,7 @@
           <div class="hero-subgrid">
             <div class="sub-item">
               <span class="label">Lucro Líquido (R$)</span>
-              <span class="value val-green" id="resLucroLiquido">R$ 0,00</span>
+              <span class="value val-green" id="resLucroLiquido">R$ 0,00 (0%)</span>
             </div>
             <div class="sub-item">
               <span class="label">Custo Líquido Real</span>
@@ -224,10 +224,10 @@
             <h2>Composição do Preço de Venda</h2>
           </div>
           <div class="composition-bar">
-            <div class="bar-segment bar-custo" id="barCusto" style="width: 50%" title="Custo Líquido"></div>
-            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 20%" title="Impostos"></div>
-            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 10%" title="Despesas Variáveis"></div>
-            <div class="bar-segment bar-lucro" id="barLucro" style="width: 20%" title="Lucro Líquido"></div>
+            <div class="bar-segment bar-custo" id="barCusto" style="width: 0%" title="Custo Líquido"></div>
+            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 0%" title="Impostos"></div>
+            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 0%" title="Despesas Variáveis"></div>
+            <div class="bar-segment bar-lucro" id="barLucro" style="width: 0%" title="Lucro Líquido"></div>
           </div>
           <div class="composition-legend">
             <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">0%</strong></div>
