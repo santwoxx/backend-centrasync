@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador Tributário & Calculadora de Preço | CentralSync</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+  <!-- Styles -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-badge">⚡ CentralSync</div>
+        <h1>Calculadora Tributária & Precificação</h1>
+        <p class="subtitle">Painel de testes fiscais com separação de Imposto de Entrada, Saída e ICMS por Estado</p>
+      </div>
+      <div class="header-actions">
+        <button id="btnShareLink" class="btn-share" title="Copiar link com esses parâmetros para o contador">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+          <span>Copiar Link para Contador</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-grid">
+      <!-- Input Panel -->
+      <section class="panel-inputs">
+        <!-- Card 1: Geral -->
+        <div class="card-box">
+          <div class="card-title">
+            <span class="icon">📦</span>
+            <h2>1. Informações do Produto & Regime</h2>
+          </div>
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="produto">Nome do Produto / Serviço</label>
+              <input type="text" id="produto" value="Sofa 3 Lugares Premium" placeholder="Ex: Cadeira de Escritório">
+            </div>
+            <div class="form-group">
+              <label for="regimeTributario">Regime Tributário da Empresa</label>
+              <select id="regimeTributario">
+                <option value="Simples Nacional" selected>Simples Nacional</option>
+                <option value="Lucro Presumido">Lucro Presumido</option>
+                <option value="Lucro Real">Lucro Real</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Entrada (Compra) -->
+        <div class="card-box card-entrada">
+          <div class="card-title">
+            <span class="icon">📥</span>
+            <h2>2. Operação de Entrada (Compra & Créditos)</h2>
+          </div>
+          
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="ufOrigem">Estado de Origem (Fornecedor)</label>
+              <select id="ufOrigem"></select>
+            </div>
+            <div class="form-group">
+              <label for="custoCompra">Custo Bruto de Compra (R$)</label>
+              <input type="number" id="custoCompra" value="1200" step="0.01" min="0">
+            </div>
+          </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="frete">Frete da Compra (R$)</label>
+              <input type="number" id="frete" value="90" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label for="ipiPct">IPI (%)</label>
+              <input type="number" id="ipiPct" value="0" step="0.1" min="0">
+            </div>
+            <div class="form-group">
+              <label for="desconto">Desconto Obtido (R$)</label>
+              <input type="number" id="desconto" value="0" step="0.01" min="0">
+            </div>
+          </div>
+
+          <div class="divider-line"></div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="aliquotaIcmsEntradaOverride">Alíquota ICMS Entrada (%)</label>
+              <input type="number" id="aliquotaIcmsEntradaOverride" placeholder="Calculado via UF" step="0.1">
+              <span class="field-hint" id="hintIcmsEntrada">Automático conforme UF Origem/Destino</span>
+            </div>
+            <div class="form-group">
+              <label for="antecipacaoParcialManual">Antecipação Parcial (R$)</label>
+              <input type="number" id="antecipacaoParcialManual" placeholder="Auto via DIFAL" step="0.01">
+              <span class="field-hint" id="hintAntecipacao">DIFAL de entrada apurado</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Saída (Venda) -->
+        <div class="card-box card-saida">
+          <div class="card-title">
+            <span class="icon">📤</span>
+            <h2>3. Operação de Saída (Venda & Margem)</h2>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="ufDestino">Estado de Destino (Sua Empresa/Venda)</label>
+              <select id="ufDestino"></select>
+            </div>
+            <div class="form-group">
+              <label for="aliquotaSaidaOverride">Alíquota Efetiva de Saída (%)</label>
+              <input type="number" id="aliquotaSaidaOverride" value="8.5" step="0.1">
+              <span class="field-hint" id="hintAlíquotaSaida">Alíquota do DAS ou ICMS Venda</span>
+            </div>
+          </div>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="despesasVariaveisPct">Despesas Variáveis (%)</label>
+              <input type="number" id="despesasVariaveisPct" value="8" step="0.5" min="0">
+              <span class="field-hint">Comissões, Cartão, Marketplace</span>
+            </div>
+            <div class="form-group">
+              <label for="margemLucroDesejadaPct">Margem de Lucro Desejada (%)</label>
+              <input type="number" id="margemLucroDesejadaPct" value="18" step="0.5" min="0">
+              <span class="field-hint">Lucro líquido pretendido</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Results Panel -->
+      <section class="panel-results">
+        <!-- Main Price Card -->
+        <div class="card-box result-hero">
+          <div class="hero-header">
+            <span>Preço de Venda Sugerido</span>
+            <span class="badge-tag" id="badgeRegime">Simples Nacional</span>
+          </div>
+          <div class="hero-price" id="resPrecoVenda">R$ 0,00</div>
+          <div class="hero-subgrid">
+            <div class="sub-item">
+              <span class="label">Lucro Líquido (R$)</span>
+              <span class="value val-green" id="resLucroLiquido">R$ 0,00</span>
+            </div>
+            <div class="sub-item">
+              <span class="label">Custo Líquido Real</span>
+              <span class="value" id="resCustoLiquido">R$ 0,00</span>
+            </div>
+            <div class="sub-item">
+              <span class="label">Markup Multiplicador</span>
+              <span class="value" id="resMarkup">0.00x</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Composition Bar Chart -->
+        <div class="card-box">
+          <div class="card-title">
+            <span class="icon">📊</span>
+            <h2>Composição do Preço de Venda</h2>
+          </div>
+          <div class="composition-bar">
+            <div class="bar-segment bar-custo" id="barCusto" style="width: 50%" title="Custo Líquido"></div>
+            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 20%" title="Impostos"></div>
+            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 10%" title="Despesas Variáveis"></div>
+            <div class="bar-segment bar-lucro" id="barLucro" style="width: 20%" title="Lucro Líquido"></div>
+          </div>
+          <div class="composition-legend">
+            <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">0%</strong></div>
+            <div class="legend-item"><span class="dot dot-impostos"></span> Impostos: <strong id="legendImpostosPct">0%</strong></div>
+            <div class="legend-item"><span class="dot dot-despesas"></span> Despesas: <strong id="legendDespesasPct">0%</strong></div>
+            <div class="legend-item"><span class="dot dot-lucro"></span> Lucro: <strong id="legendLucroPct">0%</strong></div>
+          </div>
+        </div>
+
+        <!-- Accountant Special View: Apuração Fiscal -->
+        <div class="card-box card-accountant">
+          <div class="card-title">
+            <span class="icon">🧾</span>
+            <h2>Demonstrativo de Apuração Fiscal (Visão Contador)</h2>
+          </div>
+
+          <table class="tax-table">
+            <thead>
+              <tr>
+                <th>Etapa Tributária</th>
+                <th>Base / Alíquota</th>
+                <th class="text-right">Valor (R$)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>(+) Custo Bruto de Compra</strong></td>
+                <td>Valor da NF de Entrada</td>
+                <td class="text-right" id="tabCustoBruto">R$ 0,00</td>
+              </tr>
+              <tr>
+                <td>(+) Frete + IPI da Compra</td>
+                <td id="tabFreteIpiDet">Frete: R$ 0 | IPI: R$ 0</td>
+                <td class="text-right" id="tabFreteIpi">R$ 0,00</td>
+              </tr>
+              <tr class="row-highlight-green">
+                <td><strong>(-) Crédito ICMS de Entrada</strong></td>
+                <td id="tabCreditoDet">0.00% sob NF de Entrada</td>
+                <td class="text-right text-green" id="tabCreditoIcms">- R$ 0,00</td>
+              </tr>
+              <tr class="row-highlight-amber">
+                <td><strong>(+) Antecipação Parcial / DIFAL</strong></td>
+                <td id="tabAntecipacaoDet">Diferencial de Alíquota Entrada</td>
+                <td class="text-right text-amber" id="tabAntecipacao">+ R$ 0,00</td>
+              </tr>
+              <tr class="row-total-custo">
+                <td><strong>(=) Custo Líquido Formado</strong></td>
+                <td>Base real do produto</td>
+                <td class="text-right font-bold" id="tabCustoLiquidoReal">R$ 0,00</td>
+              </tr>
+              <tr>
+                <td><strong>(+) Imposto de Saída (Venda)</strong></td>
+                <td id="tabSaidaDet">Alíquota de Saída / DAS</td>
+                <td class="text-right text-purple" id="tabImpostoSaida">R$ 0,00</td>
+              </tr>
+              <tr class="row-total-final">
+                <td><strong>(=) Carga Tributária Efetiva</strong></td>
+                <td id="tabCargaEfetivaDet">% Total em relação à Venda</td>
+                <td class="text-right font-bold text-primary" id="tabCargaEfetiva">0,00%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <p>Motor Tributário CentralSync &bull; Desenvolvido para testes e validação fiscal com contabilidade.</p>
+    </footer>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast">Link copiado com sucesso!</div>
+
+  <!-- Scripts -->
+  <script src="app.js"></script>
+</body>
+</html>
