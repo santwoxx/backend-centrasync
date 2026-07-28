@@ -92,7 +92,7 @@
         <div class="card-box card-entrada">
           <div class="card-title">
             <span class="icon">📥</span>
-            <h2>2. Operação de Entrada (Compra & Ajustes)</h2>
+            <h2>2. Operação de Entrada (Compra & Créditos)</h2>
           </div>
           
           <div class="form-grid-2">
@@ -133,12 +133,12 @@
             <div class="form-group">
               <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
               <input type="number" id="creditoIcmsEntradaOverride" value="23.63312" step="0.00001">
-              <span class="field-hint">Crédito futuro a abater no imposto</span>
+              <span class="field-hint">Crédito de ICMS a abater no imposto</span>
             </div>
             <div class="form-group">
               <label for="antecipacaoParcialPct">Antecipação / DIFAL (%)</label>
               <input type="number" id="antecipacaoParcialPct" value="13.5" step="0.1">
-              <span class="field-hint" id="hintAntecipacao">DIFAL Entrada 13.5% (BA 20.5% - 7%)</span>
+              <span class="field-hint" id="hintAntecipacao">DIFAL Entrada 13.5% (recolhido na entrada)</span>
             </div>
           </div>
         </div>
@@ -158,7 +158,7 @@
             <div class="form-group">
               <label for="aliquotaSaidaOverride">Alíquota ICMS Saída (%)</label>
               <input type="number" id="aliquotaSaidaOverride" value="20.5" step="0.1">
-              <span class="field-hint" id="hintAlíquotaSaida">Alíquota do DAS ou ICMS Venda</span>
+              <span class="field-hint" id="hintAlíquotaSaida">ICMS sobre Vendas (%)</span>
             </div>
           </div>
 
@@ -247,8 +247,8 @@
               <span class="value val-green" id="resLucroLiquido">R$ 0,00 (0%)</span>
             </div>
             <div class="sub-item">
-              <span class="label">Custo Líquido Real</span>
-              <span class="value" id="resCustoLiquido">R$ 338,46</span>
+              <span class="label">Custo Formado Real</span>
+              <span class="value" id="resCustoLiquido">R$ 348,59</span>
             </div>
             <div class="sub-item">
               <span class="label">Markup Multiplicador</span>
@@ -309,24 +309,24 @@
                 <td class="text-right font-bold" id="tabCustoFormado">R$ 348,59</td>
               </tr>
               <tr>
-                <td><strong>(+) Imposto de Saída Bruto (Venda)</strong></td>
-                <td id="tabSaidaDet">27.35% sobre R$ 540.23 (ICMS: 20.5%, PIS/COFINS/CSLL/IRPJ: 6.85%)</td>
+                <td><strong>(+) ICMS SOBRE VENDAS / IMPOSTOS</strong></td>
+                <td id="tabSaidaDet">27.35% sobre R$ 540,23</td>
                 <td class="text-right text-purple" id="tabImpostoSaida">R$ 147,75</td>
               </tr>
               <tr class="row-highlight-green">
-                <td><strong>(-) Abatimento: Crédito ICMS Entrada</strong></td>
+                <td><strong>(-) CRÉDITO DE ICMS</strong></td>
                 <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
                 <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
               </tr>
               <tr class="row-highlight-amber">
-                <td><strong>(-) Abatimento: Antecipação / DIFAL Já Pago</strong></td>
-                <td id="tabAntecipacaoDet">DIFAL Entrada 13.5% (recolhido na entrada)</td>
+                <td><strong>(-) ANTECIPAÇÃO PARCIAL</strong></td>
+                <td id="tabAntecipacaoDet">DIFAL Entrada 13.5% (já recolhido)</td>
                 <td class="text-right text-amber" id="tabAntecipacao">- R$ 13,50</td>
               </tr>
               <tr class="row-total-final">
-                <td><strong>(=) Imposto Líquido Efetivo a Recolher</strong></td>
-                <td id="tabCargaEfetivaDet">Saldo a Pagar (Saída - Crédito - DIFAL) / Venda</td>
-                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 110,62 (20.48%)</td>
+                <td><strong>(=) ICMS / IMPOSTO A PAGAR</strong></td>
+                <td id="tabCargaEfetivaDet">ICMS Vendas - Crédito ICMS - Antecipação Parcial</td>
+                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 110,62</td>
               </tr>
             </tbody>
           </table>
