@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos com NFe, NCM & Exportação
+ * CentralSync - Simulador de Precificação & Impostos com NFe, NCM, Impostos Federais & Exportação
  */
 
 const ESTADOS_BRASIL = [
@@ -43,7 +43,7 @@ function populateStateSelects() {
     const optO = document.createElement('option');
     optO.value = uf;
     optO.textContent = uf;
-    if (uf === 'SP') optO.selected = true;
+    if (uf === 'MG') optO.selected = true;
     selectOrigem.appendChild(optO);
 
     const optD = document.createElement('option');
@@ -130,13 +130,17 @@ function openExportModal() {
     ufOrigem: formData.ufOrigem,
     ufDestino: formData.ufDestino,
     custoCompra: Number(formData.custoCompra || 0),
-    frete: Number(formData.frete || 0),
+    fretePct: Number(formData.fretePct || 0),
     ipiPct: Number(formData.ipiPct || 0),
     desconto: Number(formData.desconto || 0),
     aliquotaIcmsEntradaOverride: formData.aliquotaIcmsEntradaOverride ? Number(formData.aliquotaIcmsEntradaOverride) : undefined,
     creditoIcmsEntradaOverride: formData.creditoIcmsEntradaOverride ? Number(formData.creditoIcmsEntradaOverride) : undefined,
     antecipacaoParcialManual: formData.antecipacaoParcialManual ? Number(formData.antecipacaoParcialManual) : undefined,
     aliquotaSaidaOverride: formData.aliquotaSaidaOverride ? Number(formData.aliquotaSaidaOverride) : undefined,
+    pisPct: Number(formData.pisPct || 0),
+    cofinsPct: Number(formData.cofinsPct || 0),
+    csllPct: Number(formData.csllPct || 0),
+    irpjPct: Number(formData.irpjPct || 0),
     comissaoVendaPct: Number(formData.comissaoVendaPct || 0),
     taxaCartaoPct: Number(formData.taxaCartaoPct || 0),
     taxaMarketplacePct: Number(formData.taxaMarketplacePct || 0),
@@ -170,7 +174,7 @@ function copyJsonExportCode() {
 }
 
 /**
- * Configura a zona de Drop/Upload do XML da NFe
+ * Dropzone XML NFe
  */
 function setupXmlDropzone() {
   const dropzone = document.getElementById('dropzoneXml');
@@ -257,7 +261,10 @@ function applyParsedNfeData(nfe) {
       consultarNcmEspecifico(p.ncm);
     }
     if (p.custoCompra !== undefined) document.getElementById('custoCompra').value = p.custoCompra;
-    if (p.frete !== undefined) document.getElementById('frete').value = p.frete;
+    if (p.frete !== undefined && p.custoCompra > 0) {
+      const pctCalculado = ((p.frete / p.custoCompra) * 100).toFixed(2);
+      document.getElementById('fretePct').value = pctCalculado;
+    }
     if (p.desconto !== undefined) document.getElementById('desconto').value = p.desconto;
     if (p.ipiPct !== undefined) document.getElementById('ipiPct').value = p.ipiPct;
     if (p.aliquotaIcmsEntrada !== undefined) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
@@ -340,7 +347,7 @@ async function consultarNcmEspecifico(code) {
 }
 
 /**
- * Alíquotas de ICMS
+ * Alíquotas ICMS
  */
 async function fetchIcmsRates() {
   const ufOrigem = document.getElementById('ufOrigem').value;
@@ -372,18 +379,22 @@ async function fetchIcmsRates() {
 
 function getFormData() {
   return {
-    produto: document.getElementById('produto').value || '',
+    produto: document.getElementById('produto').value || 'Produto da NFe',
     regimeTributario: document.getElementById('regimeTributario').value,
     ufOrigem: document.getElementById('ufOrigem').value,
     ufDestino: document.getElementById('ufDestino').value,
     custoCompra: document.getElementById('custoCompra').value,
-    frete: document.getElementById('frete').value,
+    fretePct: document.getElementById('fretePct').value,
     ipiPct: document.getElementById('ipiPct').value,
     desconto: document.getElementById('desconto').value,
     aliquotaIcmsEntradaOverride: document.getElementById('aliquotaIcmsEntradaOverride').value,
     creditoIcmsEntradaOverride: document.getElementById('creditoIcmsEntradaOverride').value,
     antecipacaoParcialManual: document.getElementById('antecipacaoParcialManual').value,
     aliquotaSaidaOverride: document.getElementById('aliquotaSaidaOverride').value,
+    pisPct: document.getElementById('pisPct').value,
+    cofinsPct: document.getElementById('cofinsPct').value,
+    csllPct: document.getElementById('csllPct').value,
+    irpjPct: document.getElementById('irpjPct').value,
     comissaoVendaPct: document.getElementById('comissaoVendaPct').value,
     taxaCartaoPct: document.getElementById('taxaCartaoPct').value,
     taxaMarketplacePct: document.getElementById('taxaMarketplacePct').value,
@@ -396,7 +407,6 @@ function getFormData() {
 async function updateCalculations() {
   const formData = getFormData();
 
-  // Se custo for zero ou vazio, exibe o painel zerado limpo
   if (!formData.custoCompra || Number(formData.custoCompra) === 0) {
     renderEmptyResults(formData);
     return;
@@ -420,7 +430,7 @@ async function updateCalculations() {
 }
 
 function renderEmptyResults(formData) {
-  document.getElementById('badgeRegime').textContent = formData.regimeTributario || 'Simples Nacional';
+  document.getElementById('badgeRegime').textContent = formData.regimeTributario || 'Lucro Presumido';
   document.getElementById('resPrecoVenda').textContent = 'R$ 0,00';
   document.getElementById('resLucroLiquido').textContent = 'R$ 0,00 (0%)';
   document.getElementById('resCustoLiquido').textContent = 'R$ 0,00';
@@ -491,7 +501,12 @@ function renderResults(data) {
 
   document.getElementById('tabCustoLiquidoReal').textContent = formatCurrency(data.entrada.custoLiquido);
 
-  document.getElementById('tabSaidaDet').textContent = `${data.saida.cargaTributariaSaidaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
+  let textoDetSaida = `${data.saida.cargaTributariaSaidaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
+  if (data.saida.pisPct > 0 || data.saida.cofinsPct > 0 || data.saida.csllPct > 0 || data.saida.irpjPct > 0) {
+    textoDetSaida += ` (ICMS: ${data.saida.aliquotaIcmsVendaPct}%, PIS/COFINS/CSLL/IRPJ: ${(data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct)}%)`;
+  }
+
+  document.getElementById('tabSaidaDet').textContent = textoDetSaida;
   document.getElementById('tabImpostoSaida').textContent = formatCurrency(data.saida.impostosSaidaValor);
 
   document.getElementById('tabCargaEfetivaDet').textContent = `Impostos Líquidos (Saída - Créditos) / Venda`;
@@ -506,9 +521,10 @@ function syncUrlParams() {
   const params = new URLSearchParams();
   const fields = [
     'produto', 'ncmInput', 'regimeTributario', 'ufOrigem', 'ufDestino',
-    'custoCompra', 'frete', 'ipiPct', 'desconto',
+    'custoCompra', 'fretePct', 'ipiPct', 'desconto',
     'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialManual',
-    'aliquotaSaidaOverride', 'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct',
+    'aliquotaSaidaOverride', 'pisPct', 'cofinsPct', 'csllPct', 'irpjPct',
+    'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct',
     'despesasVariaveisPct', 'margemLucroDesejadaPct'
   ];
 

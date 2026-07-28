@@ -254,6 +254,19 @@ body {
   margin-bottom: 14px;
 }
 
+.form-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .form-grid-4 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

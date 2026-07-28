@@ -61,13 +61,13 @@
           <div class="form-grid-2">
             <div class="form-group">
               <label for="produto">Nome do Produto / Serviço</label>
-              <input type="text" id="produto" placeholder="Ex: Cadeira de Escritório">
+              <input type="text" id="produto" value="Produto da NFe" placeholder="Ex: Cadeira de Escritório">
             </div>
             <div class="form-group">
               <label for="regimeTributario">Regime Tributário da Empresa</label>
               <select id="regimeTributario">
-                <option value="Simples Nacional" selected>Simples Nacional</option>
-                <option value="Lucro Presumido">Lucro Presumido</option>
+                <option value="Simples Nacional">Simples Nacional</option>
+                <option value="Lucro Presumido" selected>Lucro Presumido</option>
                 <option value="Lucro Real">Lucro Real</option>
               </select>
             </div>
@@ -77,18 +77,18 @@
           <div class="form-grid-2">
             <div class="form-group autocomplete-container">
               <label for="ncmInput">NCM do Produto (BrasilAPI)</label>
-              <input type="text" id="ncmInput" placeholder="Ex: 3305.10.00 ou Xampu" autocomplete="off">
+              <input type="text" id="ncmInput" value="94.03" placeholder="Ex: 94.03 ou Xampu" autocomplete="off">
               <div id="ncmResults" class="autocomplete-results" style="display: none;"></div>
               <span class="field-hint" id="ncmHint">Consulta automatizada via BrasilAPI</span>
             </div>
             <div class="form-group">
               <label for="ncmDesc">Descrição NCM</label>
-              <input type="text" id="ncmDesc" placeholder="Descrição oficial NCM" readonly>
+              <input type="text" id="ncmDesc" value="Outros móveis e suas partes." placeholder="Descrição oficial NCM" readonly>
             </div>
           </div>
         </div>
 
-        <!-- Card 2: Entrada (Compra) Limpo -->
+        <!-- Card 2: Entrada (Compra & Ajustes) -->
         <div class="card-box card-entrada">
           <div class="card-title">
             <span class="icon">📥</span>
@@ -102,22 +102,23 @@
             </div>
             <div class="form-group">
               <label for="custoCompra">Custo Bruto de Compra (R$)</label>
-              <input type="number" id="custoCompra" placeholder="0.00" step="0.01" min="0">
+              <input type="number" id="custoCompra" value="337.6160" step="0.0001" min="0">
             </div>
           </div>
 
           <div class="form-grid-3">
             <div class="form-group">
-              <label for="frete">Frete (R$)</label>
-              <input type="number" id="frete" placeholder="0.00" step="0.01" min="0">
+              <label for="fretePct">Frete (%)</label>
+              <input type="number" id="fretePct" value="0.00" step="0.1" min="0">
+              <span class="field-hint">% sob o custo de compra</span>
             </div>
             <div class="form-group">
               <label for="ipiPct">IPI (%)</label>
-              <input type="number" id="ipiPct" placeholder="0" step="0.1" min="0">
+              <input type="number" id="ipiPct" value="3.25" step="0.01" min="0">
             </div>
             <div class="form-group">
               <label for="desconto">Desconto (R$)</label>
-              <input type="number" id="desconto" placeholder="0.00" step="0.01" min="0">
+              <input type="number" id="desconto" value="0" step="0.01" min="0">
             </div>
           </div>
 
@@ -126,23 +127,23 @@
           <div class="form-grid-3">
             <div class="form-group">
               <label for="aliquotaIcmsEntradaOverride">Alíquota ICMS Entrada (%)</label>
-              <input type="number" id="aliquotaIcmsEntradaOverride" placeholder="Auto via UF" step="0.1">
-              <span class="field-hint" id="hintIcmsEntrada">Automático conforme UF</span>
+              <input type="number" id="aliquotaIcmsEntradaOverride" value="7" step="0.1">
+              <span class="field-hint" id="hintIcmsEntrada">Interestadual 7% (MG → BA)</span>
             </div>
             <div class="form-group">
               <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
-              <input type="number" id="creditoIcmsEntradaOverride" placeholder="Auto via alíquota" step="0.01">
+              <input type="number" id="creditoIcmsEntradaOverride" value="23.63312" step="0.00001">
               <span class="field-hint">Definir valor fixo de crédito</span>
             </div>
             <div class="form-group">
               <label for="antecipacaoParcialManual">Antecipação / DIFAL (R$)</label>
-              <input type="number" id="antecipacaoParcialManual" placeholder="Auto via DIFAL" step="0.01">
-              <span class="field-hint" id="hintAntecipacao">DIFAL de entrada</span>
+              <input type="number" id="antecipacaoParcialManual" value="13.5" step="0.01">
+              <span class="field-hint" id="hintAntecipacao">DIFAL Entrada 13.5% (BA 20.5% - 7%)</span>
             </div>
           </div>
         </div>
 
-        <!-- Card 3: Saída (Venda) Limpo -->
+        <!-- Card 3: Saída (Venda & Impostos Federais) -->
         <div class="card-box card-saida">
           <div class="card-title">
             <span class="icon">📤</span>
@@ -155,37 +156,63 @@
               <select id="ufDestino"></select>
             </div>
             <div class="form-group">
-              <label for="aliquotaSaidaOverride">Alíquota Efetiva de Saída (%)</label>
-              <input type="number" id="aliquotaSaidaOverride" placeholder="Ex: 8.5" step="0.1">
+              <label for="aliquotaSaidaOverride">Alíquota ICMS Saída (%)</label>
+              <input type="number" id="aliquotaSaidaOverride" value="20.5" step="0.1">
               <span class="field-hint" id="hintAlíquotaSaida">Alíquota do DAS ou ICMS Venda</span>
             </div>
           </div>
+
+          <!-- 4 Quadradinhos de Impostos Federais sobre Venda -->
+          <div class="form-grid-4">
+            <div class="form-group">
+              <label for="pisPct">PIS (%)</label>
+              <input type="number" id="pisPct" value="0.00" step="0.01" min="0">
+              <span class="field-hint">% sob Venda</span>
+            </div>
+            <div class="form-group">
+              <label for="cofinsPct">COFINS (%)</label>
+              <input type="number" id="cofinsPct" value="0.00" step="0.01" min="0">
+              <span class="field-hint">% sob Venda</span>
+            </div>
+            <div class="form-group">
+              <label for="csllPct">CSLL (%)</label>
+              <input type="number" id="csllPct" value="0.00" step="0.01" min="0">
+              <span class="field-hint">% sob Venda</span>
+            </div>
+            <div class="form-group">
+              <label for="irpjPct">IRPJ (%)</label>
+              <input type="number" id="irpjPct" value="0.00" step="0.01" min="0">
+              <span class="field-hint">% sob Venda</span>
+            </div>
+          </div>
+
+          <div class="divider-line"></div>
 
           <!-- Detalhamento de Despesas Variáveis -->
           <div class="form-grid-3">
             <div class="form-group">
               <label for="comissaoVendaPct">Comissão Vendas (%)</label>
-              <input type="number" id="comissaoVendaPct" placeholder="0" step="0.5" min="0">
+              <input type="number" id="comissaoVendaPct" value="5" step="0.5" min="0">
             </div>
             <div class="form-group">
               <label for="taxaCartaoPct">Taxa de Cartão (%)</label>
-              <input type="number" id="taxaCartaoPct" placeholder="0" step="0.5" min="0">
+              <input type="number" id="taxaCartaoPct" value="5" step="0.5" min="0">
             </div>
             <div class="form-group">
               <label for="taxaMarketplacePct">Marketplace (%)</label>
-              <input type="number" id="taxaMarketplacePct" placeholder="0" step="0.5" min="0">
+              <input type="number" id="taxaMarketplacePct" value="0" step="0.5" min="0">
             </div>
           </div>
 
           <div class="form-grid-2">
             <div class="form-group">
               <label for="despesasVariaveisPct">Despesas Variáveis Totais (%)</label>
-              <input type="number" id="despesasVariaveisPct" placeholder="Ex: 8" step="0.5" min="0">
+              <input type="number" id="despesasVariaveisPct" value="10" step="0.5" min="0">
               <span class="field-hint">Total de despesas sobre a venda</span>
             </div>
             <div class="form-group">
               <label for="margemLucroDesejadaPct">Margem de Lucro Desejada (%)</label>
-              <input type="number" id="margemLucroDesejadaPct" placeholder="Ex: 18" step="0.5" min="0">
+              <input type="number" id="margemLucroDesejadaPct" value="0" step="0.5" min="0">
               <span class="field-hint">Lucro líquido pretendido</span>
             </div>
           </div>
@@ -198,7 +225,7 @@
         <div class="card-box result-hero">
           <div class="hero-header">
             <span>Preço de Venda Sugerido</span>
-            <span class="badge-tag" id="badgeRegime">Simples Nacional</span>
+            <span class="badge-tag" id="badgeRegime">Lucro Presumido</span>
           </div>
           <div class="hero-price" id="resPrecoVenda">R$ 0,00</div>
           <div class="hero-subgrid">
@@ -224,10 +251,10 @@
             <h2>Composição do Preço de Venda</h2>
           </div>
           <div class="composition-bar">
-            <div class="bar-segment bar-custo" id="barCusto" style="width: 0%" title="Custo Líquido"></div>
-            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 0%" title="Impostos"></div>
-            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 0%" title="Despesas Variáveis"></div>
-            <div class="bar-segment bar-lucro" id="barLucro" style="width: 0%" title="Lucro Líquido"></div>
+            <div class="bar-segment bar-custo" id="barCusto" style="width: 50%" title="Custo Líquido"></div>
+            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 20%" title="Impostos"></div>
+            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 10%" title="Despesas Variáveis"></div>
+            <div class="bar-segment bar-lucro" id="barLucro" style="width: 20%" title="Lucro Líquido"></div>
           </div>
           <div class="composition-legend">
             <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">0%</strong></div>
@@ -260,17 +287,17 @@
               </tr>
               <tr>
                 <td>(+) Frete + IPI da Compra</td>
-                <td id="tabFreteIpiDet">Frete: R$ 0 | IPI: R$ 0</td>
+                <td id="tabFreteIpiDet">Frete: R$ 0,00 | IPI: R$ 0,00</td>
                 <td class="text-right" id="tabFreteIpi">R$ 0,00</td>
               </tr>
               <tr class="row-highlight-green">
                 <td><strong>(-) Crédito ICMS de Entrada</strong></td>
-                <td id="tabCreditoDet">0.00% sob NF de Entrada</td>
+                <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
                 <td class="text-right text-green" id="tabCreditoIcms">- R$ 0,00</td>
               </tr>
               <tr class="row-highlight-amber">
                 <td><strong>(+) Antecipação Parcial / DIFAL</strong></td>
-                <td id="tabAntecipacaoDet">Diferencial de Alíquota Entrada</td>
+                <td id="tabAntecipacaoDet">DIFAL/Antecipação Parcial (13.5% para BA)</td>
                 <td class="text-right text-amber" id="tabAntecipacao">+ R$ 0,00</td>
               </tr>
               <tr class="row-total-custo">
@@ -280,12 +307,12 @@
               </tr>
               <tr>
                 <td><strong>(+) Imposto de Saída (Venda)</strong></td>
-                <td id="tabSaidaDet">Alíquota de Saída / DAS</td>
+                <td id="tabSaidaDet">20.5% sob Venda</td>
                 <td class="text-right text-purple" id="tabImpostoSaida">R$ 0,00</td>
               </tr>
               <tr class="row-total-final">
                 <td><strong>(=) Carga Tributária Efetiva</strong></td>
-                <td id="tabCargaEfetivaDet">% Total em relação à Venda</td>
+                <td id="tabCargaEfetivaDet">Impostos Líquidos (Saída - Créditos) / Venda</td>
                 <td class="text-right font-bold text-primary" id="tabCargaEfetiva">0,00%</td>
               </tr>
             </tbody>
