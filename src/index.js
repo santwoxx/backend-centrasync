@@ -7,6 +7,8 @@ const {
   obterAliquotaInterestadual, 
   obterAliquotaInterna 
 } = require('./services/taxCalculator');
+const { parseNFeXml } = require('./services/nfeParser');
+const { buscarNcm, obterNcmPorCodigo } = require('./services/ncmService');
 
 require('dotenv').config();
 
@@ -15,7 +17,8 @@ const PORT = process.env.PORT || 3001;
 
 // Middlewares
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10mb' })); // Limite para arquivos XML grandes
+app.use(express.text({ type: ['text/xml', 'application/xml'], limit: '10mb' }));
 
 // Servir arquivos estáticos do Painel de Testes (Playground)
 app.use(express.static(path.join(__dirname, '../public')));
@@ -29,12 +32,46 @@ const authenticate = (req, res, next) => {
   next();
 };
 
-// Rota Pública do Painel de Testes (Sem necessidade de API Key para o Contador/Usuário testar no navegador)
+// Rota Pública do Painel de Testes
 app.post('/api/tax/calculate-public', (req, res) => {
   try {
     const inputData = req.body;
     const resultado = calcularPrecificacao(inputData);
     res.json({ success: true, data: resultado });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Rota para consulta de NCM via BrasilAPI
+app.get('/api/tax/ncm', async (req, res) => {
+  try {
+    const { search, code } = req.query;
+    if (code) {
+      const ncm = await obterNcmPorCodigo(code);
+      return res.json({ success: true, data: ncm ? [ncm] : [] });
+    }
+    const ncms = await buscarNcm(search || '');
+    res.json({ success: true, data: ncms });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Rota para Leitura e Parse de XML de NF-e
+app.post('/api/tax/parse-xml', (req, res) => {
+  try {
+    let xmlString = '';
+    if (typeof req.body === 'string') {
+      xmlString = req.body;
+    } else if (req.body && req.body.xml) {
+      xmlString = req.body.xml;
+    } else {
+      return res.status(400).json({ success: false, error: 'XML não fornecido ou em formato inválido.' });
+    }
+
+    const resultado = parseNFeXml(xmlString);
+    res.json(resultado);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -100,7 +137,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'centralsync-nfe-api' });
 });
 
-// Fallback SPA - Serve index.html do Painel Web para o Contador
+// Fallback SPA
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, '../public/index.html'));
 });

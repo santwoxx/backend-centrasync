@@ -19,7 +19,7 @@
       <div class="header-brand">
         <div class="logo-badge">⚡ CentralSync</div>
         <h1>Calculadora Tributária & Precificação</h1>
-        <p class="subtitle">Painel de testes fiscais com separação de Imposto de Entrada, Saída e ICMS por Estado</p>
+        <p class="subtitle">Painel de testes fiscais com leitor de XML da NF-e, consulta NCM (BrasilAPI) e ICMS por Estado</p>
       </div>
       <div class="header-actions">
         <button id="btnShareLink" class="btn-share" title="Copiar link com esses parâmetros para o contador">
@@ -29,20 +29,33 @@
       </div>
     </header>
 
+    <!-- NFe XML Upload Dropzone Banner -->
+    <section class="xml-dropzone-container">
+      <div class="xml-dropzone" id="dropzoneXml">
+        <div class="dropzone-icon">📄</div>
+        <div class="dropzone-text">
+          <strong>Importar Nota Fiscal Eletrônica (.xml)</strong>
+          <span>Arraste o arquivo XML da NF-e aqui ou clique para selecionar</span>
+        </div>
+        <input type="file" id="fileXmlInput" accept=".xml" style="display: none;">
+        <button type="button" class="btn-upload" onclick="document.getElementById('fileXmlInput').click()">Selecionar XML</button>
+      </div>
+    </section>
+
     <!-- Main Content -->
     <main class="main-grid">
       <!-- Input Panel -->
       <section class="panel-inputs">
-        <!-- Card 1: Geral -->
+        <!-- Card 1: Geral & NCM -->
         <div class="card-box">
           <div class="card-title">
             <span class="icon">📦</span>
-            <h2>1. Informações do Produto & Regime</h2>
+            <h2>1. Informações do Produto & NCM</h2>
           </div>
           <div class="form-grid-2">
             <div class="form-group">
               <label for="produto">Nome do Produto / Serviço</label>
-              <input type="text" id="produto" value="Sofa 3 Lugares Premium" placeholder="Ex: Cadeira de Escritório">
+              <input type="text" id="produto" value="Sofa 3 Lugares Premium" placeholder="Ex: Xampu 350ml">
             </div>
             <div class="form-group">
               <label for="regimeTributario">Regime Tributário da Empresa</label>
@@ -51,6 +64,20 @@
                 <option value="Lucro Presumido">Lucro Presumido</option>
                 <option value="Lucro Real">Lucro Real</option>
               </select>
+            </div>
+          </div>
+
+          <!-- NCM Lookup Row (BrasilAPI) -->
+          <div class="form-grid-2">
+            <div class="form-group autocomplete-container">
+              <label for="ncmInput">NCM do Produto (BrasilAPI)</label>
+              <input type="text" id="ncmInput" placeholder="Ex: 3305.10.00 ou Xampu" autocomplete="off">
+              <div id="ncmResults" class="autocomplete-results" style="display: none;"></div>
+              <span class="field-hint" id="ncmHint">Consulta automatizada via BrasilAPI</span>
+            </div>
+            <div class="form-group">
+              <label for="ncmDesc">Descrição NCM</label>
+              <input type="text" id="ncmDesc" placeholder="Descrição oficial NCM" readonly>
             </div>
           </div>
         </div>

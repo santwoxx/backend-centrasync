@@ -1,6 +1,6 @@
 /**
  * Client-Side JavaScript para o Painel de Testes Tributários
- * CentralSync - Simulador de Precificação & Impostos
+ * CentralSync - Simulador de Precificação & Impostos com NFe & NCM
  */
 
 const ESTADOS_BRASIL = [
@@ -9,11 +9,15 @@ const ESTADOS_BRASIL = [
   'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO'
 ];
 
+let ncmSearchTimeout = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
   populateStateSelects();
   loadStateFromURL();
-  await updateCalculations();
   setupEventListeners();
+  setupXmlDropzone();
+  setupNcmSearch();
+  await updateCalculations();
 });
 
 /**
@@ -42,27 +46,201 @@ function populateStateSelects() {
 }
 
 /**
- * Configura escutadores de eventos para todos os inputs
+ * Configura escutadores de eventos para os campos
  */
 function setupEventListeners() {
   const inputs = document.querySelectorAll('input, select');
   inputs.forEach(input => {
+    if (input.id === 'ncmInput' || input.id === 'fileXmlInput') return;
     input.addEventListener('input', () => {
       syncUrlParams();
       updateCalculations();
     });
   });
 
-  // Mudança nos estados atualiza dica de ICMS
   document.getElementById('ufOrigem').addEventListener('change', fetchIcmsRates);
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
 
-  // Botão de Compartilhar Link com Contador
   document.getElementById('btnShareLink').addEventListener('click', copyShareLink);
 }
 
 /**
- * Busca alíquotas automáticas de ICMS ao mudar a UF
+ * Configura a zona de Drop/Upload do XML da NFe
+ */
+function setupXmlDropzone() {
+  const dropzone = document.getElementById('dropzoneXml');
+  const fileInput = document.getElementById('fileXmlInput');
+
+  if (!dropzone || !fileInput) return;
+
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, preventDefaults, false);
+  });
+
+  function preventDefaults(e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, () => dropzone.classList.add('dragover'), false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    dropzone.addEventListener(eventName, () => dropzone.classList.remove('dragover'), false);
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    if (files.length > 0) {
+      handleXmlFile(files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+      handleXmlFile(e.target.files[0]);
+    }
+  });
+}
+
+/**
+ * Lê o arquivo XML e envia para a API de parse
+ */
+function handleXmlFile(file) {
+  if (!file.name.toLowerCase().endsWith('.xml')) {
+    alert('Por favor, selecione um arquivo XML de NF-e válido.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const xmlContent = e.target.result;
+    try {
+      const response = await fetch('/api/tax/parse-xml', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/xml' },
+        body: xmlContent
+      });
+
+      const resJson = await response.json();
+      if (resJson.success && resJson.nfe) {
+        applyParsedNfeData(resJson.nfe);
+        showToast(`NF-e importada com sucesso! (${resJson.nfe.totalItens} item(ns))`);
+      } else {
+        alert('Não foi possível ler as informações deste XML de NF-e.');
+      }
+    } catch (err) {
+      console.error('Erro ao enviar XML:', err);
+      alert('Erro ao processar o arquivo XML.');
+    }
+  };
+  reader.readAsText(file);
+}
+
+/**
+ * Aplica os dados extraídos do XML nos campos do formulário
+ */
+function applyParsedNfeData(nfe) {
+  if (nfe.ufOrigem) {
+    document.getElementById('ufOrigem').value = nfe.ufOrigem;
+  }
+  if (nfe.ufDestino) {
+    document.getElementById('ufDestino').value = nfe.ufDestino;
+  }
+
+  const p = nfe.primeiroItem;
+  if (p) {
+    if (p.produto) document.getElementById('produto').value = p.produto;
+    if (p.ncm) {
+      document.getElementById('ncmInput').value = p.ncm;
+      consultarNcmEspecifico(p.ncm);
+    }
+    if (p.custoCompra) document.getElementById('custoCompra').value = p.custoCompra;
+    if (p.frete) document.getElementById('frete').value = p.frete;
+    if (p.desconto) document.getElementById('desconto').value = p.desconto;
+    if (p.ipiPct) document.getElementById('ipiPct').value = p.ipiPct;
+    if (p.aliquotaIcmsEntrada) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
+  }
+
+  fetchIcmsRates();
+  syncUrlParams();
+  updateCalculations();
+}
+
+/**
+ * Configura o autocomplete de NCM via BrasilAPI
+ */
+function setupNcmSearch() {
+  const ncmInput = document.getElementById('ncmInput');
+  const resultsDiv = document.getElementById('ncmResults');
+
+  if (!ncmInput) return;
+
+  ncmInput.addEventListener('input', () => {
+    clearTimeout(ncmSearchTimeout);
+    const q = ncmInput.value.trim();
+    if (q.length < 2) {
+      resultsDiv.style.display = 'none';
+      return;
+    }
+
+    ncmSearchTimeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/tax/ncm?search=${encodeURIComponent(q)}`);
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          renderNcmSuggestions(json.data);
+        } else {
+          resultsDiv.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('Erro na busca de NCM:', err);
+      }
+    }, 350);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!ncmInput.contains(e.target) && !resultsDiv.contains(e.target)) {
+      resultsDiv.style.display = 'none';
+    }
+  });
+}
+
+function renderNcmSuggestions(items) {
+  const resultsDiv = document.getElementById('ncmResults');
+  resultsDiv.innerHTML = '';
+  resultsDiv.style.display = 'block';
+
+  items.slice(0, 8).forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'autocomplete-item';
+    div.innerHTML = `<strong>${item.codigo}</strong> - ${item.descricao}`;
+    div.addEventListener('click', () => {
+      document.getElementById('ncmInput').value = item.codigo;
+      document.getElementById('ncmDesc').value = item.descricao;
+      resultsDiv.style.display = 'none';
+      syncUrlParams();
+    });
+    resultsDiv.appendChild(div);
+  });
+}
+
+async function consultarNcmEspecifico(code) {
+  try {
+    const res = await fetch(`/api/tax/ncm?code=${encodeURIComponent(code)}`);
+    const json = await res.json();
+    if (json.success && json.data && json.data.length > 0) {
+      document.getElementById('ncmDesc').value = json.data[0].descricao || '';
+    }
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+/**
+ * Busca alíquotas de ICMS ao alterar UF
  */
 async function fetchIcmsRates() {
   const ufOrigem = document.getElementById('ufOrigem').value;
@@ -90,7 +268,7 @@ async function fetchIcmsRates() {
 }
 
 /**
- * Coleta os valores do formulário e chama a API pública de cálculo
+ * Envia formulário para o cálculo
  */
 async function updateCalculations() {
   const formData = {
@@ -126,17 +304,15 @@ async function updateCalculations() {
 }
 
 /**
- * Atualiza a interface com os resultados recebidos
+ * Atualiza o DOM com os resultados
  */
 function renderResults(data) {
-  // 1. Hero Cards
   document.getElementById('badgeRegime').textContent = data.regimeTributario;
   document.getElementById('resPrecoVenda').textContent = formatCurrency(data.saida.precoVendaSugerido);
   document.getElementById('resLucroLiquido').textContent = `${formatCurrency(data.saida.lucroLiquidoValor)} (${data.saida.margemLucroDesejadaPct}%)`;
   document.getElementById('resCustoLiquido').textContent = formatCurrency(data.entrada.custoLiquido);
   document.getElementById('resMarkup').textContent = `${data.saida.markupSobreCustoBruto}x`;
 
-  // 2. Gráfico / Composição do Preço de Venda
   const preco = data.saida.precoVendaSugerido;
   if (preco > 0) {
     const pctCusto = ((data.entrada.custoLiquido / preco) * 100).toFixed(1);
@@ -155,7 +331,6 @@ function renderResults(data) {
     document.getElementById('legendLucroPct').textContent = `${pctLucro}%`;
   }
 
-  // 3. Tabela de Apuração Fiscal (Contador)
   document.getElementById('tabCustoBruto').textContent = formatCurrency(data.entrada.custoCompra);
   
   const freteEipi = data.entrada.frete + data.entrada.ipi;
@@ -179,20 +354,14 @@ function renderResults(data) {
   document.getElementById('tabCargaEfetiva').textContent = `${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%`;
 }
 
-/**
- * Formata números para o padrão monetário BRL
- */
 function formatCurrency(val) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
 }
 
-/**
- * Atualiza os parâmetros na URL da página sem recarregar
- */
 function syncUrlParams() {
   const params = new URLSearchParams();
   const fields = [
-    'produto', 'regimeTributario', 'ufOrigem', 'ufDestino',
+    'produto', 'ncmInput', 'regimeTributario', 'ufOrigem', 'ufDestino',
     'custoCompra', 'frete', 'ipiPct', 'desconto',
     'aliquotaIcmsEntradaOverride', 'antecipacaoParcialManual',
     'aliquotaSaidaOverride', 'despesasVariaveisPct', 'margemLucroDesejadaPct'
@@ -209,9 +378,6 @@ function syncUrlParams() {
   window.history.replaceState({}, '', newUrl);
 }
 
-/**
- * Carrega estado a partir dos parâmetros da URL
- */
 function loadStateFromURL() {
   const params = new URLSearchParams(window.location.search);
   if ([...params.keys()].length === 0) return;
@@ -223,12 +389,12 @@ function loadStateFromURL() {
     }
   });
 
+  const ncm = document.getElementById('ncmInput').value;
+  if (ncm) consultarNcmEspecifico(ncm);
+
   fetchIcmsRates();
 }
 
-/**
- * Copia o link atual com parâmetros preenchidos para a área de transferência
- */
 function copyShareLink() {
   syncUrlParams();
   const fullUrl = window.location.href;
@@ -236,14 +402,10 @@ function copyShareLink() {
   navigator.clipboard.writeText(fullUrl).then(() => {
     showToast('Link do simulador copiado! Envie ao contador.');
   }).catch(err => {
-    console.error('Falha ao copiar link: ', err);
     alert('Copie o link da barra de endereço: ' + fullUrl);
   });
 }
 
-/**
- * Exibe notificação flutuante (Toast)
- */
 function showToast(message) {
   const toast = document.getElementById('toast');
   toast.textContent = message;
