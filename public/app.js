@@ -519,8 +519,9 @@ function renderResults(data) {
     document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
 
-  // TOTAL DE IMPOSTOS A RECOLHER (40,06 + 37,01 = R$ 77,07)
-  document.getElementById('tabCargaEfetivaDet').textContent = `ICMS a Pagar + Impostos Federais`;
+  // TOTAL DE IMPOSTOS A RECOLHER
+  const hasAntecipacao = data.entrada.antecipacaoParcial > 0;
+  document.getElementById('tabCargaEfetivaDet').textContent = hasAntecipacao ? `ICMS a Pagar + Impostos Federais + Antecipação Parcial` : `ICMS a Pagar + Impostos Federais`;
   document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
 

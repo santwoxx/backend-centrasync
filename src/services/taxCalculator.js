@@ -176,7 +176,7 @@ function calcularPrecificacao(input) {
   // 7. APURAÇÃO FISCAL DE ICMS EXATAMENTE CONFORME A FÓRMULA DA IMAGEM:
   // ICMS A PAGAR = ICMS SOBRE VENDAS (110,75) - CRÉDITO DE ICMS (23,63) - ANTECIPAÇÃO PARCIAL (47,06) = 40,06
   const saldoIcmsRecolher = Math.max(0, icmsSaidaBrutoValor - creditoIcmsEntrada - antecipacaoParcial);
-  const impostoLiquidoEfetivoRecolher = Math.max(0, saldoIcmsRecolher + impostosFederaisBrutoValor);
+  const impostoLiquidoEfetivoRecolher = Math.max(0, saldoIcmsRecolher + impostosFederaisBrutoValor + antecipacaoParcial);
 
   const despesasVariaveisValor = precoVenda * despesasVariaveis;
   const freteVendaValor = precoVenda * (Number(freteVendaPct) / 100);
