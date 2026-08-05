@@ -42,6 +42,9 @@ function calcularPrecificacao(input) {
     ufDestino = 'BA',
     ehImportado = false,
     tabelaIcmsCustom = null,
+    isST = false,
+    excluirIcmsBasePisCofins = true,
+    isUsoConsumo = false,
 
     // Entrada (Compra)
     custoCompra = 337.616,
@@ -100,29 +103,37 @@ function calcularPrecificacao(input) {
     aliquotaEntradaEfetiva = (ufOrigem === ufDestino ? aliquotaInternaDestino : aliquotaInterestadual);
   }
 
-  const baseCalculoEntrada = custoFormado;
+  // Base para Antecipação/ST (inclui IPI)
+  const baseCalculoStAntecipacao = custoFormado;
   
-  // Crédito de ICMS de Entrada (ex: 7% de R$ 337,62 = R$ 23,63)
+  // Base para Crédito ICMS Próprio (exclui IPI para revenda)
+  const baseCalculoEntrada = custoBase + freteValor + outrasDespesasEntradaValor - descontoValor;
+  
+  // Crédito de ICMS de Entrada
   let creditoIcmsEntrada = 0;
-  if (creditoIcmsEntradaOverride !== null && creditoIcmsEntradaOverride !== '' && !isNaN(creditoIcmsEntradaOverride)) {
+  if (isUsoConsumo) {
+    creditoIcmsEntrada = 0;
+  } else if (creditoIcmsEntradaOverride !== null && creditoIcmsEntradaOverride !== '' && !isNaN(creditoIcmsEntradaOverride)) {
     creditoIcmsEntrada = Number(creditoIcmsEntradaOverride);
   } else {
     creditoIcmsEntrada = baseCalculoEntrada * aliquotaEntradaEfetiva;
   }
 
-  // Antecipação Parcial / DIFAL de Entrada (ex: 13.5% de R$ 348,59 = R$ 47,06)
+  // Antecipação Parcial / DIFAL de Entrada
   let aliquotaAntecipacao = 0;
   let antecipacaoParcial = 0;
 
-  if (antecipacaoParcialPct !== null && antecipacaoParcialPct !== '' && !isNaN(antecipacaoParcialPct)) {
+  if (isST) {
+    antecipacaoParcial = 0;
+  } else if (antecipacaoParcialPct !== null && antecipacaoParcialPct !== '' && !isNaN(antecipacaoParcialPct)) {
     aliquotaAntecipacao = Number(antecipacaoParcialPct) / 100;
-    antecipacaoParcial = baseCalculoEntrada * aliquotaAntecipacao;
+    antecipacaoParcial = baseCalculoStAntecipacao * aliquotaAntecipacao;
   } else if (antecipacaoParcialManual !== null && antecipacaoParcialManual !== '' && !isNaN(antecipacaoParcialManual)) {
     antecipacaoParcial = Number(antecipacaoParcialManual);
-    aliquotaAntecipacao = baseCalculoEntrada > 0 ? (antecipacaoParcial / baseCalculoEntrada) : 0;
+    aliquotaAntecipacao = baseCalculoStAntecipacao > 0 ? (antecipacaoParcial / baseCalculoStAntecipacao) : 0;
   } else if (ufOrigem !== ufDestino && aliquotaInternaDestino > aliquotaEntradaEfetiva) {
     aliquotaAntecipacao = aliquotaInternaDestino - aliquotaEntradaEfetiva;
-    antecipacaoParcial = baseCalculoEntrada * aliquotaAntecipacao;
+    antecipacaoParcial = baseCalculoStAntecipacao * aliquotaAntecipacao;
   }
 
   // Custo Líquido para Precificação
@@ -137,7 +148,9 @@ function calcularPrecificacao(input) {
 
   // 4. Impostos sobre a Venda (Saída)
   let aliquotaIcmsVendaPct = 0;
-  if (aliquotaSaidaOverride !== null && aliquotaSaidaOverride !== '' && !isNaN(aliquotaSaidaOverride)) {
+  if (isUsoConsumo || isST) {
+    aliquotaIcmsVendaPct = 0;
+  } else if (aliquotaSaidaOverride !== null && aliquotaSaidaOverride !== '' && !isNaN(aliquotaSaidaOverride)) {
     aliquotaIcmsVendaPct = Number(aliquotaSaidaOverride);
   } else {
     if (regimeTributario === 'Simples Nacional') {
@@ -153,7 +166,14 @@ function calcularPrecificacao(input) {
   const pIrpj = Number(irpjPct) || 0;
   const aliquotaFederaisPct = pPis + pCofins + pCsll + pIrpj;
 
-  const cargaTributariaSaidaPct = aliquotaIcmsVendaPct + aliquotaFederaisPct;
+  let cargaTributariaSaidaPct = aliquotaIcmsVendaPct + pCsll + pIrpj;
+  let pisCofinsEfetivoPct = (pPis + pCofins);
+  
+  if (excluirIcmsBasePisCofins && regimeTributario !== 'Simples Nacional') {
+    pisCofinsEfetivoPct = (pPis + pCofins) * (1 - aliquotaIcmsVendaPct / 100);
+  }
+  
+  cargaTributariaSaidaPct += pisCofinsEfetivoPct;
   const cargaTributariaSaida = cargaTributariaSaidaPct / 100;
 
   // 5. Preço de Venda (Markup Multiplicador Direto / Por Fora)
@@ -165,13 +185,19 @@ function calcularPrecificacao(input) {
 
   // 6. Valores Monetários Finais (R$)
   const icmsSaidaBrutoValor = precoVenda * (aliquotaIcmsVendaPct / 100); // Ex: 540,23 * 20.5% = 110,75
-  const impostosFederaisBrutoValor = precoVenda * (aliquotaFederaisPct / 100); // Ex: 540,23 * 6.85% = 37,01
-  const impostosSaidaBrutoValor = icmsSaidaBrutoValor + impostosFederaisBrutoValor;
+  
+  let basePisCofins = precoVenda;
+  if (excluirIcmsBasePisCofins && regimeTributario !== 'Simples Nacional') {
+    basePisCofins = precoVenda - icmsSaidaBrutoValor;
+  }
 
-  const pisSaidaValor = precoVenda * (pPis / 100);
-  const cofinsSaidaValor = precoVenda * (pCofins / 100);
+  const pisSaidaValor = basePisCofins * (pPis / 100);
+  const cofinsSaidaValor = basePisCofins * (pCofins / 100);
   const csllSaidaValor = precoVenda * (pCsll / 100);
   const irpjSaidaValor = precoVenda * (pIrpj / 100);
+
+  const impostosFederaisBrutoValor = pisSaidaValor + cofinsSaidaValor + csllSaidaValor + irpjSaidaValor;
+  const impostosSaidaBrutoValor = icmsSaidaBrutoValor + impostosFederaisBrutoValor;
 
   // 7. APURAÇÃO FISCAL DE ICMS EXATAMENTE CONFORME A FÓRMULA DA IMAGEM:
   // ICMS A PAGAR = ICMS SOBRE VENDAS (110,75) - CRÉDITO DE ICMS (23,63) - ANTECIPAÇÃO PARCIAL (47,06) = 40,06
