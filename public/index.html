@@ -654,9 +654,12 @@
             <div class="card-box" style="margin-bottom: 0;">
               <h4>Rateio do Frete de Entrada</h4>
               <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
-                <label><input type="radio" name="paramFrete" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> ( ) Valor da Nota (XML)</label>
-                <label><input type="radio" name="paramFrete" value="VALOR_REAL" onclick="toggleParamInputs()"> ( ) Preencher Manualmente (R$)</label>
-                <label><input type="radio" name="paramFrete" value="PERCENTUAL" onclick="toggleParamInputs()"> ( % ) Percentual do Custo Real:</label>
+                <label><input type="radio" name="paramFrete" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> Valor da Nota (XML)</label>
+                <label><input type="radio" name="paramFrete" value="VALOR_REAL" onclick="toggleParamInputs()"> Preencher Valor Manualmente (R$):</label>
+                <div id="divFreteVal" style="display: none; align-items: center;">
+                  R$ <input type="number" id="paramFreteRealVal" value="0" style="width: 90px; padding: 4px; margin-left: 5px;"> (Global)
+                </div>
+                <label><input type="radio" name="paramFrete" value="PERCENTUAL" onclick="toggleParamInputs()"> Percentual do Custo Real:</label>
                 <div id="divFretePct" style="display: none; align-items: center;">
                   <input type="number" id="paramFretePctVal" value="0" style="width: 70px; padding: 4px;"> %
                 </div>
@@ -666,8 +669,12 @@
             <div class="card-box" style="margin-bottom: 0;">
               <h4>Demais Despesas de Entrada</h4>
               <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
-                <label><input type="radio" name="paramDespesas" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> ( ) Valor da Nota (XML)</label>
-                <label><input type="radio" name="paramDespesas" value="PERCENTUAL" onclick="toggleParamInputs()"> ( % ) Percentual do Item:</label>
+                <label><input type="radio" name="paramDespesas" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> Valor da Nota (XML)</label>
+                <label><input type="radio" name="paramDespesas" value="VALOR_REAL" onclick="toggleParamInputs()"> Preencher Valor Manualmente (R$):</label>
+                <div id="divDespesasVal" style="display: none; align-items: center;">
+                  R$ <input type="number" id="paramDespesasRealVal" value="0" style="width: 90px; padding: 4px; margin-left: 5px;"> (Global)
+                </div>
+                <label><input type="radio" name="paramDespesas" value="PERCENTUAL" onclick="toggleParamInputs()"> Percentual do Item:</label>
                 <div id="divDespesasPct" style="display: none; align-items: center;">
                   <input type="number" id="paramDespesasPctVal" value="0" style="width: 70px; padding: 4px;"> %
                 </div>
@@ -697,9 +704,11 @@
       function toggleParamInputs() {
         const freteVal = document.querySelector('input[name="paramFrete"]:checked').value;
         document.getElementById('divFretePct').style.display = freteVal === 'PERCENTUAL' ? 'flex' : 'none';
+        document.getElementById('divFreteVal').style.display = freteVal === 'VALOR_REAL' ? 'flex' : 'none';
 
         const despVal = document.querySelector('input[name="paramDespesas"]:checked').value;
         document.getElementById('divDespesasPct').style.display = despVal === 'PERCENTUAL' ? 'flex' : 'none';
+        document.getElementById('divDespesasVal').style.display = despVal === 'VALOR_REAL' ? 'flex' : 'none';
       }
     </script>
 </body>

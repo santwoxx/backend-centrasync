@@ -20,6 +20,7 @@ let ncmSearchTimeout = null;
 let lastCalculatedData = null;
 
 let nfeProductsQueue = [];
+let totalItemsValue = 0;
 let currentProductIndex = 0;
 let savedProductsBatch = [];
 
@@ -308,6 +309,8 @@ function applyParsedNfeData(nfe) {
     document.getElementById('savedProductsSection').style.display = 'block';
     document.getElementById('savedProductsTable').querySelector('tbody').innerHTML = '';
     
+    totalItemsValue = nfeProductsQueue.reduce((acc, curr) => acc + (curr.vProd || 0), 0);
+    
     loadProductIntoForm(nfeProductsQueue[currentProductIndex]);
   } else {
     // Fallback original
@@ -353,8 +356,12 @@ function loadProductIntoForm(p) {
     const pct = parseFloat(document.getElementById('paramFretePctVal').value) || 0;
     document.getElementById('fretePct').value = pct;
   } else if (paramFrete === 'VALOR_REAL') {
-    // Deixa em branco para o usuario digitar no form
-    document.getElementById('frete').value = '';
+    // Rateio global proporcional ao peso financeiro do item (valor total)
+    const globalFrete = parseFloat(document.getElementById('paramFreteRealVal').value) || 0;
+    const fraction = totalItemsValue > 0 ? ((p.vProd || 0) / totalItemsValue) : 0;
+    const freteTotalProduto = globalFrete * fraction;
+    const freteUnitario = freteTotalProduto / (p.qCom || 1);
+    document.getElementById('frete').value = freteUnitario.toFixed(2);
   }
   
   // 3. Demais Despesas (Desconto e Outras)
@@ -366,12 +373,13 @@ function loadProductIntoForm(p) {
 
   if (paramDesp === 'VALOR_NOTA') {
     if (desconto !== undefined) document.getElementById('desconto').value = desconto;
-  } else if (paramDesp === 'PERCENTUAL') {
-    // Transforma o percentual digitado no modal em valor real e coloca em Outras Despesas
-    const pct = parseFloat(document.getElementById('paramDespesasPctVal').value) || 0;
-    document.getElementById('outrasDespesasEntrada').value = (custo * (pct / 100)).toFixed(2);
   } else if (paramDesp === 'VALOR_REAL') {
-    // Deixa em branco para o usuario preencher
+    // Rateio global proporcional ao peso financeiro do item (valor total)
+    const globalDesp = parseFloat(document.getElementById('paramDespesasRealVal').value) || 0;
+    const fraction = totalItemsValue > 0 ? ((p.vProd || 0) / totalItemsValue) : 0;
+    const despTotalProduto = globalDesp * fraction;
+    const despUnitario = despTotalProduto / (p.qCom || 1);
+    document.getElementById('outrasDespesasEntrada').value = despUnitario.toFixed(2);
   }
   
   const ipiPct = p.ipiPct !== undefined ? p.ipiPct : p.pIPI;
