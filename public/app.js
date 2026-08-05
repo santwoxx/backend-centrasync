@@ -561,6 +561,11 @@ function renderEmptyResults(formData) {
   document.getElementById('tabAntecipacaoDet').textContent = 'Aguardando Custo...';
   document.getElementById('tabAntecipacao').textContent = '- R$ 0,00';
   
+  if (document.getElementById('tabIcmsEntradaInterna')) {
+    document.getElementById('tabIcmsEntradaInternaDet').textContent = 'Base de Cálculo x Alíquota Interna Destino';
+    document.getElementById('tabIcmsEntradaInterna').textContent = '- R$ 0,00';
+  }
+  
   if (document.getElementById('tabIcmsPagar')) {
     document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
   }
@@ -614,6 +619,15 @@ function renderResults(data) {
 
   document.getElementById('tabCreditoDet').textContent = `${data.entrada.aliquotaEntradaPct}% de ICMS de Origem (${data.ufOrigem})`;
   document.getElementById('tabCreditoIcms').textContent = `- ${formatCurrency(data.entrada.creditoIcmsEntrada)}`;
+
+  // ICMS DE ENTRADA (Alíquota Interna Destino)
+  if (document.getElementById('tabIcmsEntradaInterna')) {
+    const dem = data.demonstrativoFiscal;
+    if (dem && dem.aliquotaInternaDestinoPct !== undefined) {
+      document.getElementById('tabIcmsEntradaInternaDet').textContent = `Base Custo Formado (${formatCurrency(dem.custoFormado)}) x Alíquota Interna Destino (${dem.aliquotaInternaDestinoPct}%)`;
+      document.getElementById('tabIcmsEntradaInterna').textContent = `- ${formatCurrency(dem.icmsEntradaAliquotaInternaValor)}`;
+    }
+  }
 
   // ANTECIPAÇÃO PARCIAL (13.5% = R$ 47,06)
   document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
