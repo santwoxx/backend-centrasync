@@ -60,43 +60,53 @@ function parseNFeXml(xmlContent) {
     const qCom = parseFloat(extractTagValue(prodSection, 'qCom') || '1');
     const vUnCom = parseFloat(extractTagValue(prodSection, 'vUnCom') || (vProd / (qCom || 1)).toString());
 
+    // Valores unitários baseados na quantidade (qCom)
+    const qtde = qCom || 1;
+    const vFreteUnit = vFrete / qtde;
+    const vDescUnit = vDesc / qtde;
+
     // Impostos
     // IPI
     const ipiSection = extractSection(impostoSection, 'IPI');
     const pIPI = parseFloat(extractTagValue(ipiSection, 'pIPI') || '0');
     const vIPI = parseFloat(extractTagValue(ipiSection, 'vIPI') || '0');
+    const vIPIUnit = vIPI / qtde;
 
     // ICMS
     const icmsSection = extractSection(impostoSection, 'ICMS');
     const pICMS = parseFloat(extractTagValue(icmsSection, 'pICMS') || '0');
     const vICMS = parseFloat(extractTagValue(icmsSection, 'vICMS') || '0');
+    const vICMSUnit = vICMS / qtde;
     const vICMSST = parseFloat(extractTagValue(icmsSection, 'vICMSST') || '0');
+    const vICMSSTUnit = vICMSST / qtde;
     const pICMSST = parseFloat(extractTagValue(icmsSection, 'pICMSST') || '0');
 
     // PIS e COFINS
     const pisSection = extractSection(impostoSection, 'PIS');
     const vPIS = parseFloat(extractTagValue(pisSection, 'vPIS') || '0');
+    const vPISUnit = vPIS / qtde;
 
     const cofinsSection = extractSection(impostoSection, 'COFINS');
     const vCOFINS = parseFloat(extractTagValue(cofinsSection, 'vCOFINS') || '0');
+    const vCOFINSUnit = vCOFINS / qtde;
 
     produtos.push({
       itemNumber: index + 1,
       xProd,
       ncm,
-      vProd,
+      vProd, // total
       qCom,
-      vUnCom,
-      vFrete,
-      vDesc,
+      vUnCom, // unitário (custoCompra)
+      vFrete: vFreteUnit,
+      vDesc: vDescUnit,
       pIPI,
-      vIPI,
+      vIPI: vIPIUnit,
       pICMS,
-      vICMS,
+      vICMS: vICMSUnit,
       pICMSST,
-      vICMSST,
-      vPIS,
-      vCOFINS
+      vICMSST: vICMSSTUnit,
+      vPIS: vPISUnit,
+      vCOFINS: vCOFINSUnit
     });
   });
 
@@ -112,7 +122,7 @@ function parseNFeXml(xmlContent) {
       primeiroItem: {
         produto: primeiroItem.xProd || 'Produto da NFe',
         ncm: primeiroItem.ncm || '',
-        custoCompra: primeiroItem.vProd || 0,
+        custoCompra: primeiroItem.vUnCom || 0,
         frete: primeiroItem.vFrete || 0,
         desconto: primeiroItem.vDesc || 0,
         ipiPct: primeiroItem.pIPI || 0,

@@ -19,6 +19,10 @@ let currentCustomIcmsTable = { ...DEFAULT_ICMS_RATES };
 let ncmSearchTimeout = null;
 let lastCalculatedData = null;
 
+let nfeProductsQueue = [];
+let currentProductIndex = 0;
+let savedProductsBatch = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
   populateStateSelects();
   loadStateFromURL();
@@ -65,6 +69,25 @@ function setupEventListeners() {
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
 
   document.getElementById('btnShareLink').addEventListener('click', copyShareLink);
+  
+  const btnSaveNext = document.getElementById('btnSaveAndNext');
+  if (btnSaveNext) {
+    btnSaveNext.addEventListener('click', saveAndLoadNextProduct);
+  }
+
+  const btnExportBatch = document.getElementById('btnExportBatch');
+  if (btnExportBatch) {
+    btnExportBatch.addEventListener('click', () => {
+      if (savedProductsBatch.length === 0) return alert('Nenhum produto salvo ainda.');
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedProductsBatch, null, 2));
+      const downloadAnchorNode = document.createElement('a');
+      downloadAnchorNode.setAttribute("href", dataStr);
+      downloadAnchorNode.setAttribute("download", "precificacao_lote.json");
+      document.body.appendChild(downloadAnchorNode);
+      downloadAnchorNode.click();
+      downloadAnchorNode.remove();
+    });
+  }
 }
 
 function setupModals() {
@@ -243,27 +266,118 @@ function applyParsedNfeData(nfe) {
     document.getElementById('ufDestino').value = nfe.ufDestino;
   }
 
-  const p = nfe.primeiroItem;
-  if (p) {
-    if (p.produto) document.getElementById('produto').value = p.produto;
-    if (p.ncm) {
-      document.getElementById('ncmInput').value = p.ncm;
-      consultarNcmEspecifico(p.ncm);
+  if (nfe.produtos && nfe.produtos.length > 0) {
+    nfeProductsQueue = nfe.produtos;
+    currentProductIndex = 0;
+    savedProductsBatch = [];
+    
+    // Mostra info
+    const info = document.getElementById('nfeQueueInfo');
+    const text = document.getElementById('nfeQueueText');
+    if (info && text) {
+      info.style.display = 'block';
+      text.textContent = `NF-e Importada! Encontrados ${nfe.totalItens} produto(s). Configurando item 1 de ${nfe.totalItens}.`;
+      text.style.color = '#0284c7';
+      text.style.backgroundColor = 'transparent';
+      text.style.borderColor = 'transparent';
     }
-    if (p.custoCompra !== undefined) document.getElementById('custoCompra').value = p.custoCompra;
-    if (p.frete !== undefined && p.custoCompra > 0) {
-      const pctCalculado = ((p.frete / p.custoCompra) * 100).toFixed(2);
-      document.getElementById('fretePct').value = pctCalculado;
-    }
-    if (p.desconto !== undefined) document.getElementById('desconto').value = p.desconto;
-    if (p.ipiPct !== undefined) document.getElementById('ipiPct').value = p.ipiPct;
-    if (p.aliquotaIcmsEntrada !== undefined) document.getElementById('aliquotaIcmsEntradaOverride').value = p.aliquotaIcmsEntrada;
-    if (p.creditoIcmsEntrada !== undefined) document.getElementById('creditoIcmsEntradaOverride').value = p.creditoIcmsEntrada;
+    
+    // Mostra o botão e tabela
+    document.getElementById('multiProductActions').style.display = 'block';
+    document.getElementById('savedProductsSection').style.display = 'block';
+    document.getElementById('savedProductsTable').querySelector('tbody').innerHTML = '';
+    
+    loadProductIntoForm(nfeProductsQueue[currentProductIndex]);
+  } else {
+    // Fallback original
+    const p = nfe.primeiroItem;
+    if (p) loadProductIntoForm(p);
   }
 
   fetchIcmsRates();
   syncUrlParams();
   updateCalculations();
+}
+
+function loadProductIntoForm(p) {
+  if (p.produto || p.xProd) document.getElementById('produto').value = p.produto || p.xProd;
+  if (p.ncm) {
+    document.getElementById('ncmInput').value = p.ncm;
+    consultarNcmEspecifico(p.ncm);
+  }
+  
+  const custo = p.custoCompra !== undefined ? p.custoCompra : p.vUnCom;
+  if (custo !== undefined) document.getElementById('custoCompra').value = custo;
+  
+  const frete = p.frete !== undefined ? p.frete : p.vFrete;
+  if (frete !== undefined && custo > 0) {
+    const pctCalculado = ((frete / custo) * 100).toFixed(2);
+    document.getElementById('fretePct').value = pctCalculado;
+  } else {
+    document.getElementById('fretePct').value = 0;
+  }
+  
+  const desconto = p.desconto !== undefined ? p.desconto : p.vDesc;
+  if (desconto !== undefined) document.getElementById('desconto').value = desconto;
+  
+  const ipiPct = p.ipiPct !== undefined ? p.ipiPct : p.pIPI;
+  if (ipiPct !== undefined) document.getElementById('ipiPct').value = ipiPct;
+  
+  const icmsPct = p.aliquotaIcmsEntrada !== undefined ? p.aliquotaIcmsEntrada : p.pICMS;
+  if (icmsPct !== undefined) document.getElementById('aliquotaIcmsEntradaOverride').value = icmsPct;
+  
+  const icmsVal = p.creditoIcmsEntrada !== undefined ? p.creditoIcmsEntrada : p.vICMS;
+  if (icmsVal !== undefined) document.getElementById('creditoIcmsEntradaOverride').value = icmsVal;
+  
+  // Atualiza texto do botão
+  const btnText = document.getElementById('btnSaveAndNextText');
+  if (btnText) {
+    btnText.textContent = `Salvar Produto (${currentProductIndex + 1}/${nfeProductsQueue.length}) e Próximo`;
+    if (currentProductIndex === nfeProductsQueue.length - 1) {
+      btnText.textContent = `Salvar Último Produto (${currentProductIndex + 1}/${nfeProductsQueue.length})`;
+    }
+  }
+}
+
+async function saveAndLoadNextProduct() {
+  if (!lastCalculatedData) return;
+  
+  // Salva no batch
+  savedProductsBatch.push(lastCalculatedData);
+  
+  // Atualiza tabela
+  const tbody = document.getElementById('savedProductsTable').querySelector('tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td>${lastCalculatedData.produto}</td>
+    <td>R$ ${lastCalculatedData.entrada.custoLiquido.toFixed(2)}</td>
+    <td>R$ ${lastCalculatedData.saida.precoVendaSugerido.toFixed(2)}</td>
+    <td>R$ ${lastCalculatedData.saida.lucroLiquidoValor.toFixed(2)}</td>
+  `;
+  tbody.appendChild(tr);
+  
+  // Avança
+  currentProductIndex++;
+  if (currentProductIndex < nfeProductsQueue.length) {
+    const text = document.getElementById('nfeQueueText');
+    if (text) text.textContent = `Configurando item ${currentProductIndex + 1} de ${nfeProductsQueue.length}.`;
+    
+    loadProductIntoForm(nfeProductsQueue[currentProductIndex]);
+    fetchIcmsRates();
+    syncUrlParams();
+    await updateCalculations();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    // Terminou
+    document.getElementById('multiProductActions').style.display = 'none';
+    const text = document.getElementById('nfeQueueText');
+    if (text) {
+      text.textContent = '✅ Todos os produtos desta NF-e foram precificados!';
+      text.style.color = '#15803d';
+      text.parentNode.style.backgroundColor = '#dcfce7';
+      text.parentNode.style.borderColor = '#bbf7d0';
+    }
+  }
 }
 
 function setupNcmSearch() {

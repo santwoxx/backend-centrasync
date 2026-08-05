@@ -46,6 +46,10 @@
         <input type="file" id="fileXmlInput" accept=".xml" style="display: none;">
         <button type="button" class="btn-upload" onclick="document.getElementById('fileXmlInput').click()">Selecionar XML</button>
       </div>
+      <!-- Multi-product Queue Info (Hidden by default) -->
+      <div id="nfeQueueInfo" class="nfe-queue-info" style="display: none; margin-top: 15px; padding: 15px; background: #e0f2fe; color: #0284c7; border-radius: 8px; border: 1px solid #bae6fd; font-weight: 500; text-align: center;">
+        <span id="nfeQueueText"></span>
+      </div>
     </section>
 
     <!-- Main Content -->
@@ -343,6 +347,39 @@
         </div>
       </section>
     </main>
+
+    <!-- Multi-product Save & Next Section -->
+    <section class="multi-product-actions" id="multiProductActions" style="display: none; text-align: center; margin: 20px auto; max-width: 1200px;">
+      <button id="btnSaveAndNext" class="btn-primary" style="padding: 12px 24px; font-size: 1.1rem; width: 100%; max-width: 400px; margin: 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
+        💾 <span id="btnSaveAndNextText">Salvar Produto e Ir para o Próximo</span>
+      </button>
+    </section>
+
+    <!-- Saved Products Table -->
+    <section class="saved-products-section" id="savedProductsSection" style="display: none; margin: 30px auto; max-width: 1200px;">
+      <div class="card-box">
+        <div class="card-title">
+          <span class="icon">📋</span>
+          <h2>Produtos Precificados (Lote Atual)</h2>
+        </div>
+        <table class="tax-table" id="savedProductsTable">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Custo Líquido</th>
+              <th>Preço de Venda</th>
+              <th>Lucro Líquido</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Dynamic rows -->
+          </tbody>
+        </table>
+        <div style="margin-top: 15px; text-align: right;">
+          <button id="btnExportBatch" class="btn-secondary">Exportar Todos (JSON)</button>
+        </div>
+      </div>
+    </section>
 
     <!-- Modal 1: Configuração da Tabela de ICMS por Estado -->
     <div id="modalIcmsConfig" class="modal-overlay" style="display: none;">
