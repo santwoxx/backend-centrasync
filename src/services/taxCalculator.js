@@ -23,8 +23,11 @@ function obterAliquotaInterestadual(ufOrigem, ufDestino, ehImportado = false) {
 
 function obterAliquotaInterna(uf, tabelaCustom = null) {
   if (!uf) return 0.18;
-  const tabela = tabelaCustom || ALIQUOTAS_ICMS_ESTADOS_PADRAO;
-  return tabela[uf.toUpperCase()] !== undefined ? tabela[uf.toUpperCase()] : 0.18;
+  if (tabelaCustom && tabelaCustom[uf.toUpperCase()] !== undefined) {
+    // A tabela customizada (que vem do frontend) envia em formato percentual (ex: 20.5 em vez de 0.205)
+    return Number(tabelaCustom[uf.toUpperCase()]) / 100;
+  }
+  return ALIQUOTAS_ICMS_ESTADOS_PADRAO[uf.toUpperCase()] !== undefined ? ALIQUOTAS_ICMS_ESTADOS_PADRAO[uf.toUpperCase()] : 0.18;
 }
 
 /**
