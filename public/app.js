@@ -353,7 +353,7 @@ async function fetchIcmsRates() {
       } else {
         hintEntrada.textContent = `Interestadual ${data.aliquotaInterestadualPct}% (${ufOrigem} → ${ufDestino})`;
         const difalPct = (aliquotaInternaCustom - data.aliquotaInterestadualPct).toFixed(1);
-        hintAntecipacao.textContent = `DIFAL Entrada ${difalPct}% (${ufDestino} ${aliquotaInternaCustom}% - ${data.aliquotaInterestadualPct}%)`;
+        hintAntecipacao.textContent = `Difal (Antecipação Parcial ou Substituição Tributária) ${difalPct}% (${ufDestino} ${aliquotaInternaCustom}% - ${data.aliquotaInterestadualPct}%)`;
       }
     }
   } catch (err) {
@@ -503,7 +503,7 @@ function renderResults(data) {
 
   // ANTECIPAÇÃO PARCIAL (13.5% = R$ 47,06)
   document.getElementById('tabAntecipacaoDet').textContent = data.entrada.antecipacaoParcial > 0 
-    ? `DIFAL Entrada ${data.entrada.aliquotaAntecipacaoPct}% (recolhido na entrada)`
+    ? `Difal (Antecipação Parcial ou Substituição Tributária) ${data.entrada.aliquotaAntecipacaoPct}%`
     : `Sem antecipação apurada`;
   document.getElementById('tabAntecipacao').textContent = `- ${formatCurrency(data.entrada.antecipacaoParcial)}`;
 
