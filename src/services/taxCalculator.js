@@ -153,15 +153,12 @@ function calcularPrecificacao(input) {
   const cargaTributariaSaidaPct = aliquotaIcmsVendaPct + aliquotaFederaisPct;
   const cargaTributariaSaida = cargaTributariaSaidaPct / 100;
 
-  // 5. Preço de Venda (Markup Divisor / Gross Up)
-  const denominador = 1 - (despesasVariaveis + margemLucroDesejada + cargaTributariaSaida);
-
-  let precoVenda = 0;
-  if (denominador > 0) {
-    precoVenda = custoLiquidoReal / denominador;
-  } else {
-    precoVenda = custoLiquidoReal * 2;
-  }
+  // 5. Preço de Venda (Markup Multiplicador Direto / Por Fora)
+  const somaPercentuais = despesasVariaveis + margemLucroDesejada + cargaTributariaSaida;
+  const precoVenda = custoLiquidoReal * (1 + somaPercentuais);
+  
+  // O denominador é mantido apenas para compatibilidade de retorno, embora não seja mais o divisor
+  const denominador = 1 + somaPercentuais;
 
   // 6. Valores Monetários Finais (R$)
   const icmsSaidaBrutoValor = precoVenda * (aliquotaIcmsVendaPct / 100); // Ex: 540,23 * 20.5% = 110,75
