@@ -352,7 +352,7 @@ async function saveAndLoadNextProduct() {
     <td>${lastCalculatedData.produto}</td>
     <td>R$ ${lastCalculatedData.entrada.custoLiquido.toFixed(2)}</td>
     <td>R$ ${lastCalculatedData.saida.precoVendaSugerido.toFixed(2)}</td>
-    <td>R$ ${lastCalculatedData.saida.lucroLiquidoValor.toFixed(2)}</td>
+    <td>R$ ${lastCalculatedData.saida.lucroLiquidoValor.toFixed(2)} (${lastCalculatedData.saida.margemLucroDesejadaPct}%)</td>
   `;
   tbody.appendChild(tr);
   
