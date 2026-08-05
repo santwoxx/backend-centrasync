@@ -103,8 +103,8 @@ function calcularPrecificacao(input) {
     aliquotaEntradaEfetiva = (ufOrigem === ufDestino ? aliquotaInternaDestino : aliquotaInterestadual);
   }
 
-  // Base para Antecipação/ST (inclui IPI)
-  const baseCalculoStAntecipacao = custoFormado;
+  // Base para Antecipação/ST (O usuário especificou que a base deve ser o valor unitário do produto)
+  const baseCalculoStAntecipacao = custoBase;
   
   // Base para Crédito ICMS Próprio (exclui IPI para revenda)
   const baseCalculoEntrada = custoBase + freteValor + outrasDespesasEntradaValor - descontoValor;
@@ -277,6 +277,7 @@ function calcularPrecificacao(input) {
     // Demonstrativo Fiscal Sintético (conforme fórmula exata da imagem)
     demonstrativoFiscal: {
       custoFormado: Number(custoFormado.toFixed(4)),
+      baseCalculoStAntecipacao: Number(baseCalculoStAntecipacao.toFixed(4)),
       icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)), // 110.75
       icmsEntradaAliquotaInternaValor: Number((baseCalculoStAntecipacao * aliquotaInternaDestino).toFixed(2)),
       aliquotaInternaDestinoPct: Number((aliquotaInternaDestino * 100).toFixed(2)),
