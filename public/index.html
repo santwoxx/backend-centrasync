@@ -115,9 +115,12 @@
 
           <div class="form-grid-3">
             <div class="form-group">
-              <label for="fretePct">Frete (%)</label>
-              <input type="number" id="fretePct" value="0.00" step="0.1" min="0">
-              <span class="field-hint">% sob o custo de compra</span>
+              <label for="fretePct">Frete (%) ou (R$)</label>
+              <div style="display: flex; gap: 5px;">
+                <input type="number" id="fretePct" value="0" step="0.01" min="0" style="width: 50%;">
+                <input type="number" id="frete" value="" step="0.01" min="0" placeholder="R$" style="width: 50%;">
+              </div>
+              <span class="field-hint">Use % ou digite em R$</span>
             </div>
             <div class="form-group">
               <label for="ipiPct">IPI (%)</label>
@@ -126,6 +129,10 @@
             <div class="form-group">
               <label for="desconto">Desconto (R$)</label>
               <input type="number" id="desconto" value="0" step="0.01" min="0">
+            </div>
+            <div class="form-group">
+              <label for="outrasDespesasEntrada">Outras Desp. (R$)</label>
+              <input type="number" id="outrasDespesasEntrada" value="0" step="0.01" min="0">
             </div>
           </div>
 
@@ -442,27 +449,43 @@
             
             <div class="card-box" style="margin-bottom: 0;">
               <h4>Rateio do Valor da NF</h4>
-              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
-                <label><input type="radio" name="paramNf" value="CHEIA" checked> ( ) CHEIA</label>
-                <label><input type="radio" name="paramNf" value="FRACAO"> ( ) FRAÇÃO</label>
-                <label><input type="radio" name="paramNf" value="PERCENTUAL"> ( % ) PERCENTUAL</label>
-                <label><input type="radio" name="paramNf" value="VALOR_REAL"> ( R$ ) VALOR REAL</label>
+              <p style="font-size: 0.85rem; color: #64748b; margin-top: 5px;">Ajusta o Custo Base do produto se a NF for emitida apenas com parte do valor real.</p>
+              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                <label><input type="radio" name="paramNf" value="CHEIA" checked onclick="toggleParamInputs()"> ( ) CHEIA</label>
+                <label><input type="radio" name="paramNf" value="FRACAO" onclick="toggleParamInputs()"> ( ) FRAÇÃO</label>
+                <div id="divNfFracao" style="display: none; align-items: center; gap: 5px;">
+                  <input type="number" id="paramNfFracaoNum" value="1" style="width: 50px; padding: 4px;"> / <input type="number" id="paramNfFracaoDen" value="2" style="width: 50px; padding: 4px;">
+                </div>
+                <label><input type="radio" name="paramNf" value="PERCENTUAL" onclick="toggleParamInputs()"> ( % ) PERCENTUAL</label>
+                <div id="divNfPct" style="display: none; align-items: center; gap: 5px;">
+                  <input type="number" id="paramNfPctVal" value="50" style="width: 70px; padding: 4px;"> %
+                </div>
+                <label><input type="radio" name="paramNf" value="VALOR_REAL" onclick="toggleParamInputs()"> ( R$ ) VALOR REAL</label>
               </div>
             </div>
 
             <div class="card-box" style="margin-bottom: 0;">
-              <h4>Rateio do Frete</h4>
-              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
-                <label><input type="radio" name="paramFrete" value="VALOR_REAL" checked> ( ) VALOR REAL</label>
-                <label><input type="radio" name="paramFrete" value="VALOR_NOTA"> ( ) VALOR DA NOTA</label>
+              <h4>Rateio do Frete de Entrada</h4>
+              <p style="font-size: 0.85rem; color: #64748b; margin-top: 5px;">Como tratar o frete de entrada do XML.</p>
+              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                <label><input type="radio" name="paramFrete" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> ( ) VALOR DA NOTA (XML)</label>
+                <label><input type="radio" name="paramFrete" value="PERCENTUAL" onclick="toggleParamInputs()"> ( % ) PERCENTUAL</label>
+                <div id="divFretePct" style="display: none; align-items: center; gap: 5px;">
+                  <input type="number" id="paramFretePctVal" value="0" style="width: 70px; padding: 4px;"> %
+                </div>
+                <label><input type="radio" name="paramFrete" value="VALOR_REAL" onclick="toggleParamInputs()"> ( R$ ) VALOR REAL</label>
               </div>
             </div>
 
             <div class="card-box" style="margin-bottom: 0;">
-              <h4>Demais Despesas</h4>
-              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap;">
-                <label><input type="radio" name="paramDespesas" value="VALOR_REAL" checked> ( ) VALOR REAL</label>
-                <label><input type="radio" name="paramDespesas" value="VALOR_NOTA"> ( ) VALOR DA NOTA</label>
+              <h4>Demais Despesas de Entrada</h4>
+              <div style="display: flex; gap: 15px; margin-top: 10px; flex-wrap: wrap; align-items: center;">
+                <label><input type="radio" name="paramDespesas" value="VALOR_NOTA" checked onclick="toggleParamInputs()"> ( ) VALOR DA NOTA (XML)</label>
+                <label><input type="radio" name="paramDespesas" value="PERCENTUAL" onclick="toggleParamInputs()"> ( % ) PERCENTUAL</label>
+                <div id="divDespesasPct" style="display: none; align-items: center; gap: 5px;">
+                  <input type="number" id="paramDespesasPctVal" value="0" style="width: 70px; padding: 4px;"> %
+                </div>
+                <label><input type="radio" name="paramDespesas" value="VALOR_REAL" onclick="toggleParamInputs()"> ( R$ ) VALOR REAL</label>
               </div>
             </div>
 
@@ -484,6 +507,22 @@
   <div id="toast" class="toast">Link copiado com sucesso!</div>
 
   <!-- Scripts -->
-  <script src="app.js"></script>
+    <script src="app.js"></script>
+    <script>
+      function toggleParamInputs() {
+        const nfVal = document.querySelector('input[name="paramNf"]:checked').value;
+        document.getElementById('divNfFracao').style.display = nfVal === 'FRACAO' ? 'flex' : 'none';
+        document.getElementById('divNfPct').style.display = nfVal === 'PERCENTUAL' ? 'flex' : 'none';
+        document.getElementById('divNfVal').style.display = nfVal === 'VALOR_REAL' ? 'flex' : 'none';
+
+        const freteVal = document.querySelector('input[name="paramFrete"]:checked').value;
+        document.getElementById('divFretePct').style.display = freteVal === 'PERCENTUAL' ? 'flex' : 'none';
+        document.getElementById('divFreteVal').style.display = freteVal === 'VALOR_REAL' ? 'flex' : 'none';
+
+        const despVal = document.querySelector('input[name="paramDespesas"]:checked').value;
+        document.getElementById('divDespesasPct').style.display = despVal === 'PERCENTUAL' ? 'flex' : 'none';
+        document.getElementById('divDespesasVal').style.display = despVal === 'VALOR_REAL' ? 'flex' : 'none';
+      }
+    </script>
 </body>
 </html>

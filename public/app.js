@@ -328,19 +328,62 @@ function loadProductIntoForm(p) {
     consultarNcmEspecifico(p.ncm);
   }
   
-  const custo = p.custoCompra !== undefined ? p.custoCompra : p.vUnCom;
-  if (custo !== undefined) document.getElementById('custoCompra').value = custo;
-  
-  const frete = p.frete !== undefined ? p.frete : p.vFrete;
-  if (frete !== undefined && custo > 0) {
-    const pctCalculado = ((frete / custo) * 100).toFixed(2);
-    document.getElementById('fretePct').value = pctCalculado;
-  } else {
-    document.getElementById('fretePct').value = 0;
+  // 1. Rateio do Valor da NF (Custo Base)
+  let custo = p.custoCompra !== undefined ? p.custoCompra : p.vUnCom;
+  const paramNf = document.querySelector('input[name="paramNf"]:checked').value;
+  if (custo !== undefined) {
+    if (paramNf === 'PERCENTUAL') {
+      const pct = parseFloat(document.getElementById('paramNfPctVal').value) || 100;
+      custo = custo / (pct / 100);
+      document.getElementById('custoCompra').value = custo.toFixed(4);
+    } else if (paramNf === 'FRACAO') {
+      const num = parseFloat(document.getElementById('paramNfFracaoNum').value) || 1;
+      const den = parseFloat(document.getElementById('paramNfFracaoDen').value) || 1;
+      custo = custo / (num / den);
+      document.getElementById('custoCompra').value = custo.toFixed(4);
+    } else if (paramNf === 'VALOR_REAL') {
+      document.getElementById('custoCompra').value = '';
+    } else {
+      // CHEIA
+      document.getElementById('custoCompra').value = custo;
+    }
   }
   
+  // 2. Rateio do Frete
+  const freteXml = p.frete !== undefined ? p.frete : p.vFrete;
+  const paramFrete = document.querySelector('input[name="paramFrete"]:checked').value;
+  
+  document.getElementById('fretePct').value = 0;
+  document.getElementById('frete').value = '';
+  
+  if (paramFrete === 'VALOR_NOTA' && freteXml !== undefined && custo > 0) {
+    // Proporcional do XML
+    const pctCalculado = ((freteXml / custo) * 100).toFixed(2);
+    document.getElementById('fretePct').value = pctCalculado;
+  } else if (paramFrete === 'PERCENTUAL') {
+    const pct = parseFloat(document.getElementById('paramFretePctVal').value) || 0;
+    document.getElementById('fretePct').value = pct;
+  } else if (paramFrete === 'VALOR_REAL') {
+    // Deixa em branco para o usuario digitar no form
+    document.getElementById('frete').value = '';
+  }
+  
+  // 3. Demais Despesas (Desconto e Outras)
   const desconto = p.desconto !== undefined ? p.desconto : p.vDesc;
-  if (desconto !== undefined) document.getElementById('desconto').value = desconto;
+  const paramDesp = document.querySelector('input[name="paramDespesas"]:checked').value;
+  
+  document.getElementById('desconto').value = 0;
+  document.getElementById('outrasDespesasEntrada').value = 0;
+
+  if (paramDesp === 'VALOR_NOTA') {
+    if (desconto !== undefined) document.getElementById('desconto').value = desconto;
+  } else if (paramDesp === 'PERCENTUAL') {
+    // Transforma o percentual digitado no modal em valor real e coloca em Outras Despesas
+    const pct = parseFloat(document.getElementById('paramDespesasPctVal').value) || 0;
+    document.getElementById('outrasDespesasEntrada').value = (custo * (pct / 100)).toFixed(2);
+  } else if (paramDesp === 'VALOR_REAL') {
+    // Deixa em branco para o usuario preencher
+  }
   
   const ipiPct = p.ipiPct !== undefined ? p.ipiPct : p.pIPI;
   if (ipiPct !== undefined) document.getElementById('ipiPct').value = ipiPct;
@@ -505,8 +548,10 @@ function getFormData() {
     ufDestino: document.getElementById('ufDestino').value,
     custoCompra: document.getElementById('custoCompra').value,
     fretePct: document.getElementById('fretePct').value,
+    frete: document.getElementById('frete').value,
     ipiPct: document.getElementById('ipiPct').value,
     desconto: document.getElementById('desconto').value,
+    outrasDespesasEntrada: document.getElementById('outrasDespesasEntrada').value,
     aliquotaIcmsEntradaOverride: document.getElementById('aliquotaIcmsEntradaOverride').value,
     creditoIcmsEntradaOverride: document.getElementById('creditoIcmsEntradaOverride').value,
     antecipacaoParcialPct: document.getElementById('antecipacaoParcialPct').value,
