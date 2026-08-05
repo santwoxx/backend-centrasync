@@ -131,14 +131,14 @@
               <span class="field-hint" id="hintIcmsEntrada">Interestadual 7% (MG → BA)</span>
             </div>
             <div class="form-group">
-              <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
-              <input type="number" id="creditoIcmsEntradaOverride" value="23.63312" step="0.00001">
-              <span class="field-hint">Crédito futuro a abater</span>
-            </div>
-            <div class="form-group">
               <label for="antecipacaoParcialPct">Difal (Antecipação Parcial ou Substituição Tributária) (%)</label>
               <input type="number" id="antecipacaoParcialPct" value="" step="0.1" placeholder="Ex: 13.0">
               <span class="field-hint" id="hintAntecipacao">DIFAL Entrada (recolhido na entrada)</span>
+            </div>
+            <div class="form-group">
+              <label for="creditoIcmsEntradaOverride">Crédito ICMS (R$ Override)</label>
+              <input type="number" id="creditoIcmsEntradaOverride" value="" step="0.00001" placeholder="Automático">
+              <span class="field-hint">Crédito futuro a abater</span>
             </div>
           </div>
         </div>
@@ -313,15 +313,15 @@
                 <td id="tabIcmsSaidaDet">20,50% sobre R$ 540,23</td>
                 <td class="text-right text-purple" id="tabIcmsSaida">R$ 110,75</td>
               </tr>
-              <tr class="row-highlight-green">
-                <td><strong>(-) CRÉDITO DE ICMS</strong></td>
-                <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
-                <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
-              </tr>
               <tr class="row-highlight-amber">
                 <td><strong>(-) ANTECIPAÇÃO PARCIAL</strong></td>
                 <td id="tabAntecipacaoDet">DIFAL Entrada (recolhido na entrada)</td>
                 <td class="text-right text-amber" id="tabAntecipacao">- R$ 47,06</td>
+              </tr>
+              <tr class="row-highlight-green">
+                <td><strong>(-) CRÉDITO DE ICMS</strong></td>
+                <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
+                <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
               </tr>
               <tr class="row-total-custo">
                 <td><strong>(=) ICMS A PAGAR</strong></td>
