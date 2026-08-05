@@ -330,23 +330,12 @@ function loadProductIntoForm(p) {
   
   // 1. Rateio do Valor da NF (Custo Base)
   let custo = p.custoCompra !== undefined ? p.custoCompra : p.vUnCom;
-  const paramNf = document.querySelector('input[name="paramNf"]:checked').value;
   if (custo !== undefined) {
-    if (paramNf === 'PERCENTUAL') {
-      const pct = parseFloat(document.getElementById('paramNfPctVal').value) || 100;
+    const pct = parseFloat(document.getElementById('paramNfPctVal').value) || 100;
+    if (pct > 0) {
       custo = custo / (pct / 100);
-      document.getElementById('custoCompra').value = custo.toFixed(4);
-    } else if (paramNf === 'FRACAO') {
-      const num = parseFloat(document.getElementById('paramNfFracaoNum').value) || 1;
-      const den = parseFloat(document.getElementById('paramNfFracaoDen').value) || 1;
-      custo = custo / (num / den);
-      document.getElementById('custoCompra').value = custo.toFixed(4);
-    } else if (paramNf === 'VALOR_REAL') {
-      document.getElementById('custoCompra').value = '';
-    } else {
-      // CHEIA
-      document.getElementById('custoCompra').value = custo;
     }
+    document.getElementById('custoCompra').value = custo.toFixed(4);
   }
   
   // 2. Rateio do Frete
