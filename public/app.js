@@ -61,9 +61,18 @@ function setupEventListeners() {
     if (input.id === 'ncmInput' || input.id === 'fileXmlInput') return;
     input.addEventListener('input', () => {
       syncUrlParams();
-      updateCalculations();
+      // updateCalculations(); <-- REMOVIDO: Agora é feito pelo botão calcular
     });
   });
+
+  const btnCalcularManual = document.getElementById('btnCalcularManual');
+  if (btnCalcularManual) {
+    btnCalcularManual.addEventListener('click', () => {
+      document.getElementById('panelResults').style.display = 'block';
+      updateCalculations();
+      window.scrollTo({ top: document.getElementById('panelResults').offsetTop, behavior: 'smooth' });
+    });
+  }
 
   document.getElementById('ufOrigem').addEventListener('change', fetchIcmsRates);
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
@@ -93,6 +102,18 @@ function setupEventListeners() {
 function setupModals() {
   document.getElementById('btnOpenConfigModal').addEventListener('click', openIcmsModal);
   document.getElementById('btnExportJson').addEventListener('click', openExportModal);
+  
+  const btnOpenParam = document.getElementById('btnOpenParamModal');
+  if (btnOpenParam) {
+    btnOpenParam.addEventListener('click', () => {
+      document.getElementById('modalParametrizacao').style.display = 'flex';
+    });
+  }
+}
+
+function closeParamModal() {
+  document.getElementById('modalParametrizacao').style.display = 'none';
+  showToast('Parâmetros salvos. Faça a importação do XML ou clique em Calcular.');
 }
 
 function openIcmsModal() {
@@ -296,7 +317,8 @@ function applyParsedNfeData(nfe) {
 
   fetchIcmsRates();
   syncUrlParams();
-  updateCalculations();
+  document.getElementById('panelResults').style.display = 'none';
+  showToast('XML carregado! Ajuste os dados e clique em Calcular.');
 }
 
 function loadProductIntoForm(p) {
@@ -365,7 +387,7 @@ async function saveAndLoadNextProduct() {
     loadProductIntoForm(nfeProductsQueue[currentProductIndex]);
     fetchIcmsRates();
     syncUrlParams();
-    await updateCalculations();
+    document.getElementById('panelResults').style.display = 'none'; // Oculta resultados até apertar Calcular
     window.scrollTo({ top: 0, behavior: 'smooth' });
   } else {
     // Terminou
