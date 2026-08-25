@@ -119,6 +119,9 @@ function calcularPrecificacao(input) {
     creditoIcmsEntrada = baseCalculoEntrada * aliquotaEntradaEfetiva;
   }
 
+  // ICMS de Entrada pela Alíquota Interna do Destino (sobre o Custo Formado)
+  const icmsEntradaAliquotaInterna = custoFormado * aliquotaInternaDestino;
+
   // Antecipação Parcial / DIFAL de Entrada
   let aliquotaAntecipacao = 0;
   let antecipacaoParcial = 0;
@@ -132,8 +135,9 @@ function calcularPrecificacao(input) {
     antecipacaoParcial = Number(antecipacaoParcialManual);
     aliquotaAntecipacao = baseCalculoStAntecipacao > 0 ? (antecipacaoParcial / baseCalculoStAntecipacao) : 0;
   } else if (ufOrigem !== ufDestino && aliquotaInternaDestino > aliquotaEntradaEfetiva) {
-    aliquotaAntecipacao = aliquotaInternaDestino - aliquotaEntradaEfetiva;
-    antecipacaoParcial = baseCalculoStAntecipacao * aliquotaAntecipacao;
+    // Antecipação = ICMS de entrada pela alíquota interna (sobre o Custo Formado) - Crédito de ICMS
+    antecipacaoParcial = Math.max(0, icmsEntradaAliquotaInterna - creditoIcmsEntrada);
+    aliquotaAntecipacao = custoFormado > 0 ? (antecipacaoParcial / custoFormado) : 0;
   }
 
   // Custo Líquido para Precificação
@@ -279,7 +283,7 @@ function calcularPrecificacao(input) {
       custoFormado: Number(custoFormado.toFixed(4)),
       baseCalculoStAntecipacao: Number(baseCalculoStAntecipacao.toFixed(4)),
       icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)), // 110.75
-      icmsEntradaAliquotaInternaValor: Number((custoFormado * aliquotaInternaDestino).toFixed(2)),
+      icmsEntradaAliquotaInternaValor: Number(icmsEntradaAliquotaInterna.toFixed(2)),
       aliquotaInternaDestinoPct: Number((aliquotaInternaDestino * 100).toFixed(2)),
       creditoEntradaAbatido: Number(creditoIcmsEntrada.toFixed(4)), // 23.63
       antecipacaoParcialAbatida: Number(antecipacaoParcial.toFixed(4)), // 47.06 (13.5%)
