@@ -279,7 +279,7 @@ function calcularPrecificacao(input) {
       custoFormado: Number(custoFormado.toFixed(4)),
       baseCalculoStAntecipacao: Number(baseCalculoStAntecipacao.toFixed(4)),
       icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)), // 110.75
-      icmsEntradaAliquotaInternaValor: Number((baseCalculoStAntecipacao * aliquotaInternaDestino).toFixed(2)),
+      icmsEntradaAliquotaInternaValor: Number((custoFormado * aliquotaInternaDestino).toFixed(2)),
       aliquotaInternaDestinoPct: Number((aliquotaInternaDestino * 100).toFixed(2)),
       creditoEntradaAbatido: Number(creditoIcmsEntrada.toFixed(4)), // 23.63
       antecipacaoParcialAbatida: Number(antecipacaoParcial.toFixed(4)), // 47.06 (13.5%)

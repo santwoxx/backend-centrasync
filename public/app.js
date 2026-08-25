@@ -688,7 +688,7 @@ function renderResults(data) {
   if (document.getElementById('tabIcmsEntradaInterna')) {
     const dem = data.demonstrativoFiscal;
     if (dem && dem.aliquotaInternaDestinoPct !== undefined) {
-      document.getElementById('tabIcmsEntradaInternaDet').textContent = `Base Custo Mercadoria (${formatCurrency(dem.baseCalculoStAntecipacao)}) x Alíquota Interna Destino (${dem.aliquotaInternaDestinoPct}%)`;
+      document.getElementById('tabIcmsEntradaInternaDet').textContent = `Custo Formado do Produto (${formatCurrency(dem.custoFormado)}) x Alíquota Interna Destino (${dem.aliquotaInternaDestinoPct}%)`;
       document.getElementById('tabIcmsEntradaInterna').textContent = `- ${formatCurrency(dem.icmsEntradaAliquotaInternaValor)}`;
     }
   }
