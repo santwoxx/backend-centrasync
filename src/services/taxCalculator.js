@@ -43,7 +43,9 @@ function calcularPrecificacao(input) {
     ehImportado = false,
     tabelaIcmsCustom = null,
     isST = false,
-    excluirIcmsBasePisCofins = true,
+    // Exclusao do ICMS da base de PIS/COFINS ("tese do seculo"): opt-in, exige respaldo judicial.
+    // Padrao desligado -> os 6,85% federais incidem integralmente sobre o preco de venda.
+    excluirIcmsBasePisCofins = false,
     isUsoConsumo = false,
 
     // Entrada (Compra)
