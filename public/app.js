@@ -677,7 +677,9 @@ function renderResults(data) {
 
   // ICMS SOBRE VENDAS ISOLADO (20.5% = R$ 110,75)
   if (document.getElementById('tabIcmsSaida')) {
-    document.getElementById('tabIcmsSaidaDet').textContent = `${data.saida.aliquotaIcmsVendaPct}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    const baseIcmsVenda = data.saida.baseIcmsSaidaValor !== undefined ? data.saida.baseIcmsSaidaValor : data.saida.precoVendaSugerido;
+    const ipiForaDaBase = data.entrada.ipi > 0 ? ` (venda ${formatCurrency(data.saida.precoVendaSugerido)} - IPI ${formatCurrency(data.entrada.ipi)})` : '';
+    document.getElementById('tabIcmsSaidaDet').textContent = `${data.saida.aliquotaIcmsVendaPct}% sobre R$ ${baseIcmsVenda}${ipiForaDaBase}`;
     document.getElementById('tabIcmsSaida').textContent = formatCurrency(data.saida.icmsSaidaValor);
   }
 

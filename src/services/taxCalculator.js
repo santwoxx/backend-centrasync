@@ -190,7 +190,9 @@ function calcularPrecificacao(input) {
   const denominador = 1 + somaPercentuais;
 
   // 6. Valores Monetários Finais (R$)
-  const icmsSaidaBrutoValor = precoVenda * (aliquotaIcmsVendaPct / 100); // Ex: 540,23 * 20.5% = 110,75
+  // O IPI não compõe a base de cálculo do ICMS: base = valor de venda da mercadoria (-) IPI
+  const baseIcmsSaida = Math.max(0, precoVenda - valorIpi);
+  const icmsSaidaBrutoValor = baseIcmsSaida * (aliquotaIcmsVendaPct / 100);
   
   let basePisCofins = precoVenda;
   if (excluirIcmsBasePisCofins && regimeTributario !== 'Simples Nacional') {
@@ -252,6 +254,7 @@ function calcularPrecificacao(input) {
       csllPct: Number(pCsll.toFixed(2)),
       irpjPct: Number(pIrpj.toFixed(2)),
       
+      baseIcmsSaidaValor: Number(baseIcmsSaida.toFixed(2)),
       icmsSaidaValor: Number(icmsSaidaBrutoValor.toFixed(2)),
       impostosFederaisValor: Number(impostosFederaisBrutoValor.toFixed(2)),
       pisSaidaValor: Number(pisSaidaValor.toFixed(2)),
@@ -284,7 +287,8 @@ function calcularPrecificacao(input) {
     demonstrativoFiscal: {
       custoFormado: Number(custoFormado.toFixed(4)),
       baseCalculoStAntecipacao: Number(baseCalculoStAntecipacao.toFixed(4)),
-      icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)), // 110.75
+      baseIcmsVendas: Number(baseIcmsSaida.toFixed(2)), // preço de venda (-) IPI
+      icmsVendasBruto: Number(icmsSaidaBrutoValor.toFixed(2)),
       icmsEntradaAliquotaInternaValor: Number(icmsEntradaAliquotaInterna.toFixed(2)),
       aliquotaInternaDestinoPct: Number((aliquotaInternaDestino * 100).toFixed(2)),
       creditoEntradaAbatido: Number(creditoIcmsEntrada.toFixed(4)), // 23.63
