@@ -288,6 +288,7 @@ function calcularPrecificacao(input) {
       aliquotaFederaisEfetivaPct: Number(aliquotaFederaisEfetivaPct.toFixed(2)),
       csllIrpjSobreLucro: sobreLucro,
       baseCsllIrpjValor: Number(baseCsllIrpj.toFixed(2)),
+      basePisCofinsValor: Number(basePisCofins.toFixed(2)),
       pisPct: Number(pPis.toFixed(2)),
       cofinsPct: Number(pCofins.toFixed(2)),
       csllPct: Number(pCsll.toFixed(2)),

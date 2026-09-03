@@ -755,6 +755,8 @@ function renderEmptyResults(formData) {
   if (document.getElementById('tabIcmsPagar')) {
     document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
   }
+  esconderDetalheFederais();
+
   if (document.getElementById('tabFederaisVal')) {
     document.getElementById('tabFederaisVal').textContent = 'R$ 0,00';
   }
@@ -834,9 +836,14 @@ function renderResults(data) {
     const somaFederais = (data.saida.aliquotaFederaisEfetivaPct !== undefined
       ? data.saida.aliquotaFederaisEfetivaPct
       : data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
-    document.getElementById('tabFederaisDet').textContent = `${somaFederais}% sobre R$ ${data.saida.precoVendaSugerido}`;
+    const rotuloFederais = data.saida.csllIrpjSobreLucro
+      ? `${formatPercent(Number(somaFederais))} efetivos sobre ${formatCurrency(data.saida.precoVendaSugerido)}`
+      : `${formatPercent(Number(somaFederais))} sobre ${formatCurrency(data.saida.precoVendaSugerido)}`;
+    document.getElementById('tabFederaisDet').textContent = rotuloFederais;
     document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
+
+  renderDetalheFederais(data.saida);
 
   // TOTAL DE IMPOSTOS A RECOLHER
   const hasAntecipacao = data.entrada.antecipacaoParcial > 0;
@@ -844,8 +851,56 @@ function renderResults(data) {
   document.getElementById('tabImpostoLiquido').textContent = `${formatCurrency(data.demonstrativoFiscal.totalImpostosRecolher)} (${data.demonstrativoFiscal.cargaTributariaEfetivaPct}%)`;
 }
 
+// Cada federal com sua própria base: PIS/COFINS sobre a receita, CSLL/IRPJ sobre o lucro.
+const LINHAS_FEDERAIS = [
+  { id: 'Pis', pct: 'pisPct', valor: 'pisSaidaValor', base: 'receita' },
+  { id: 'Cofins', pct: 'cofinsPct', valor: 'cofinsSaidaValor', base: 'receita' },
+  { id: 'Csll', pct: 'csllPct', valor: 'csllSaidaValor', base: 'lucro' },
+  { id: 'Irpj', pct: 'irpjPct', valor: 'irpjSaidaValor', base: 'lucro' }
+];
+
+/**
+ * No Lucro Real cada tributo federal ganha sua própria linha, porque as bases são
+ * diferentes (PIS/COFINS sobre a venda, CSLL/IRPJ sobre o lucro). Nos demais regimes
+ * as quatro alíquotas incidem sobre a venda e a linha agregada já basta.
+ */
+function renderDetalheFederais(saida) {
+  const detalhar = saida.csllIrpjSobreLucro === true;
+
+  LINHAS_FEDERAIS.forEach(({ id, pct, valor, base }) => {
+    const linha = document.getElementById('rowFederal' + id);
+    if (!linha) return;
+
+    linha.style.display = detalhar ? '' : 'none';
+    if (!detalhar) return;
+
+    const sobreLucro = base === 'lucro';
+    const baseValor = sobreLucro
+      ? (saida.baseCsllIrpjValor !== undefined ? saida.baseCsllIrpjValor : 0)
+      : (saida.basePisCofinsValor !== undefined ? saida.basePisCofinsValor : saida.precoVendaSugerido);
+
+    const descricao = sobreLucro
+      ? `${formatPercent(saida[pct])} sobre o lucro de ${formatCurrency(baseValor)}`
+      : `${formatPercent(saida[pct])} sobre a venda de ${formatCurrency(baseValor)}`;
+
+    document.getElementById('tab' + id + 'Det').textContent = descricao;
+    document.getElementById('tab' + id + 'Val').textContent = formatCurrency(saida[valor]);
+  });
+}
+
+function esconderDetalheFederais() {
+  LINHAS_FEDERAIS.forEach(({ id }) => {
+    const linha = document.getElementById('rowFederal' + id);
+    if (linha) linha.style.display = 'none';
+  });
+}
+
 function formatCurrency(val) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val || 0);
+}
+
+function formatPercent(val) {
+  return new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val || 0) + '%';
 }
 
 function syncUrlParams() {

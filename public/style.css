@@ -492,6 +492,16 @@ body {
   background: var(--accent-amber-bg);
 }
 
+.row-federal-detalhe td:first-child {
+  padding-left: 32px;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.row-federal-detalhe td {
+  border-bottom-style: dashed;
+}
+
 .row-total-custo {
   background: rgba(255, 255, 255, 0.03);
 }
