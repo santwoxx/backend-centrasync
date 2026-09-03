@@ -10,13 +10,20 @@ const ALIQUOTAS_ICMS_ESTADOS_PADRAO = {
 };
 
 // Alíquotas federais padrão por regime, usadas quando o chamador não informa o percentual.
-// Lucro Presumido = PIS/COFINS cumulativos; Lucro Real = não cumulativos;
+// Lucro Presumido = PIS/COFINS cumulativos e CSLL/IRPJ presumidos sobre a receita;
+// Lucro Real = PIS/COFINS não cumulativos e CSLL/IRPJ nominais sobre o LUCRO (9% e 15%);
 // Simples Nacional = federais recolhidos no DAS (não incidem em separado sobre a venda).
 const PRESETS_FEDERAIS_POR_REGIME = {
   'Simples Nacional': { pisPct: 0, cofinsPct: 0, csllPct: 0, irpjPct: 0 },
   'Lucro Presumido': { pisPct: 0.65, cofinsPct: 3, csllPct: 1.2, irpjPct: 2 },
-  'Lucro Real': { pisPct: 1.65, cofinsPct: 7.6, csllPct: 1.2, irpjPct: 2 }
+  'Lucro Real': { pisPct: 1.65, cofinsPct: 7.6, csllPct: 9, irpjPct: 15 }
 };
+
+// No Lucro Real a CSLL (9%) e o IRPJ (15%) incidem sobre o lucro apurado, não sobre a receita.
+// Nos demais regimes os percentuais informados já são estimativas diretas sobre a venda.
+function csllIrpjIncidemSobreLucro(regimeTributario) {
+  return regimeTributario === 'Lucro Real';
+}
 
 function resolverAliquotaFederal(valorInformado, padraoDoRegime) {
   if (valorInformado === null || valorInformado === undefined || valorInformado === '') {
@@ -190,7 +197,11 @@ function calcularPrecificacao(input) {
   const pIrpj = resolverAliquotaFederal(irpjPct, presetFederal.irpjPct);
   const aliquotaFederaisPct = pPis + pCofins + pCsll + pIrpj;
 
-  let cargaTributariaSaidaPct = aliquotaIcmsVendaPct + pCsll + pIrpj;
+  // No Lucro Real, CSLL/IRPJ só pesam no preço na proporção do lucro embutido nele.
+  const sobreLucro = csllIrpjIncidemSobreLucro(regimeTributario);
+  const csllIrpjNaVendaPct = sobreLucro ? (pCsll + pIrpj) * margemLucroDesejada : (pCsll + pIrpj);
+
+  let cargaTributariaSaidaPct = aliquotaIcmsVendaPct + csllIrpjNaVendaPct;
   let pisCofinsEfetivoPct = (pPis + pCofins);
   
   if (excluirIcmsBasePisCofins && regimeTributario !== 'Simples Nacional') {
@@ -219,10 +230,17 @@ function calcularPrecificacao(input) {
 
   const pisSaidaValor = basePisCofins * (pPis / 100);
   const cofinsSaidaValor = basePisCofins * (pCofins / 100);
-  const csllSaidaValor = precoVenda * (pCsll / 100);
-  const irpjSaidaValor = precoVenda * (pIrpj / 100);
+  // Lucro embutido no preço = base de cálculo de CSLL/IRPJ no Lucro Real.
+  const lucroAntesCsllIrpj = precoVenda * margemLucroDesejada;
+  const baseCsllIrpj = sobreLucro ? lucroAntesCsllIrpj : precoVenda;
+
+  const csllSaidaValor = baseCsllIrpj * (pCsll / 100);
+  const irpjSaidaValor = baseCsllIrpj * (pIrpj / 100);
 
   const impostosFederaisBrutoValor = pisSaidaValor + cofinsSaidaValor + csllSaidaValor + irpjSaidaValor;
+  // Percentual que os federais representam do preço final (difere da soma nominal quando
+  // CSLL/IRPJ incidem sobre o lucro ou quando o ICMS é excluído da base de PIS/COFINS).
+  const aliquotaFederaisEfetivaPct = precoVenda > 0 ? (impostosFederaisBrutoValor / precoVenda) * 100 : 0;
   const impostosSaidaBrutoValor = icmsSaidaBrutoValor + impostosFederaisBrutoValor;
 
   // 7. APURAÇÃO FISCAL DE ICMS EXATAMENTE CONFORME A FÓRMULA DA IMAGEM:
@@ -233,7 +251,7 @@ function calcularPrecificacao(input) {
   const despesasVariaveisValor = precoVenda * despesasVariaveis;
   const freteVendaValor = precoVenda * (Number(freteVendaPct) / 100);
   const montagemValor = precoVenda * (Number(montagemPct) / 100);
-  const lucroLiquidoValor = precoVenda * margemLucroDesejada;
+  const lucroLiquidoValor = lucroAntesCsllIrpj;
 
   const markupSobreCustoBruto = custoBase > 0 ? (precoVenda / custoBase) : 0;
   const markupSobreCustoLiquido = custoLiquidoReal > 0 ? (precoVenda / custoLiquidoReal) : 0;
@@ -267,6 +285,9 @@ function calcularPrecificacao(input) {
     saida: {
       aliquotaIcmsVendaPct: Number(aliquotaIcmsVendaPct.toFixed(2)),
       aliquotaFederaisPct: Number(aliquotaFederaisPct.toFixed(2)),
+      aliquotaFederaisEfetivaPct: Number(aliquotaFederaisEfetivaPct.toFixed(2)),
+      csllIrpjSobreLucro: sobreLucro,
+      baseCsllIrpjValor: Number(baseCsllIrpj.toFixed(2)),
       pisPct: Number(pPis.toFixed(2)),
       cofinsPct: Number(pCofins.toFixed(2)),
       csllPct: Number(pCsll.toFixed(2)),

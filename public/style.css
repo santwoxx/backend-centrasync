@@ -295,6 +295,13 @@ body {
   border-color: var(--border-focus);
 }
 
+/* Campos calculados (somente leitura): lidos como resultado, nao como campo editavel */
+.form-group input[readonly] {
+  background: var(--bg-card);
+  color: var(--text-muted);
+  cursor: default;
+}
+
 .field-hint {
   font-size: 0.72rem;
   color: var(--text-dark);

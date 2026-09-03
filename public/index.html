@@ -238,9 +238,12 @@
               <span class="field-hint">Total de despesas sobre a venda</span>
             </div>
             <div class="form-group">
-              <label for="margemLucroDesejadaPct">Margem de Lucro Desejada (%)</label>
-              <input type="number" id="margemLucroDesejadaPct" value="0" step="0.5" min="0">
-              <span class="field-hint">Lucro líquido pretendido</span>
+              <label for="margemLucroDesejadaPct">Margem de Lucro Desejada (%) e (R$)</label>
+              <div style="display: flex; gap: 5px;">
+                <input type="number" id="margemLucroDesejadaPct" value="0" step="0.5" min="0" style="width: 50%;">
+                <input type="text" id="margemLucroDesejadaValor" value="R$ 0,00" readonly tabindex="-1" style="width: 50%;">
+              </div>
+              <span class="field-hint" id="hintMargemLucro">Lucro líquido pretendido</span>
             </div>
           </div>
         </div>

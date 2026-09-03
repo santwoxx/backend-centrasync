@@ -33,24 +33,31 @@ const PRESETS_REGIME = {
     csllPct: 0,
     irpjPct: 0,
     hintPisCofins: 'Incluso no DAS',
-    hintCsllIrpj: 'Incluso no DAS'
+    hintCsllIrpj: 'Incluso no DAS',
+    hintMargem: 'Lucro líquido pretendido'
   },
   'Lucro Presumido': {
     pisPct: 0.65,
     cofinsPct: 3.00,
+    csllPct: 1.20,
+    irpjPct: 2.00,
     hintPisCofins: 'Cumulativo (sem crédito)',
-    hintCsllIrpj: '% sob Venda'
+    hintCsllIrpj: 'Presumido, % sob Venda',
+    hintMargem: 'Lucro líquido pretendido'
   },
   'Lucro Real': {
     pisPct: 1.65,
     cofinsPct: 7.60,
+    // No Lucro Real as alíquotas são as nominais e incidem sobre o LUCRO (R$ ao lado da margem).
+    csllPct: 9.00,
+    irpjPct: 15.00,
     hintPisCofins: 'Não cumulativo (com crédito)',
-    hintCsllIrpj: '% estimado sob Venda'
+    hintCsllIrpj: 'Sobre o lucro (R$ da margem)',
+    hintMargem: 'Lucro líquido pretendido — base do CSLL/IRPJ'
   }
 };
 
-// Guarda CSLL/IRPJ informados antes de entrar no Simples Nacional, para restaurar na volta.
-let federaisAntesDoSimples = null;
+let margemEmReaisTimeout = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
   populateStateSelects();
@@ -107,7 +114,10 @@ function setupEventListeners() {
   document.getElementById('regimeTributario').addEventListener('change', (e) => {
     aplicarPresetRegime(e.target.value);
     syncUrlParams();
+    agendarMargemEmReais();
   });
+
+  document.getElementById('margemLucroDesejadaPct').addEventListener('input', agendarMargemEmReais);
 
   document.getElementById('ufOrigem').addEventListener('change', fetchIcmsRates);
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
@@ -141,28 +151,42 @@ function aplicarPresetRegime(regime) {
   const preset = PRESETS_REGIME[regime];
   if (!preset) return;
 
-  const campos = ['pisPct', 'cofinsPct', 'csllPct', 'irpjPct'];
+  ['pisPct', 'cofinsPct', 'csllPct', 'irpjPct'].forEach(id => setFederalValue(id, preset[id]));
+  atualizarHintsFederais(preset);
+}
 
-  if (regime === 'Simples Nacional') {
-    if (!federaisAntesDoSimples) {
-      federaisAntesDoSimples = {
-        csllPct: document.getElementById('csllPct').value,
-        irpjPct: document.getElementById('irpjPct').value
-      };
-    }
-    campos.forEach(id => setFederalValue(id, 0));
-  } else {
-    setFederalValue('pisPct', preset.pisPct);
-    setFederalValue('cofinsPct', preset.cofinsPct);
+/**
+ * Mostra, ao lado do %, quanto a margem desejada representa em R$ no preço sugerido.
+ * É esse valor que serve de base para CSLL/IRPJ no Lucro Real.
+ */
+function agendarMargemEmReais() {
+  clearTimeout(margemEmReaisTimeout);
+  margemEmReaisTimeout = setTimeout(atualizarMargemEmReais, 400);
+}
 
-    if (federaisAntesDoSimples) {
-      document.getElementById('csllPct').value = federaisAntesDoSimples.csllPct;
-      document.getElementById('irpjPct').value = federaisAntesDoSimples.irpjPct;
-      federaisAntesDoSimples = null;
-    }
+async function atualizarMargemEmReais() {
+  const campo = document.getElementById('margemLucroDesejadaValor');
+  if (!campo) return;
+
+  const formData = getFormData();
+  if (!formData.custoCompra || Number(formData.custoCompra) === 0) {
+    campo.value = formatCurrency(0);
+    return;
   }
 
-  atualizarHintsFederais(preset);
+  try {
+    const response = await fetch('/api/tax/calculate-public', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+    const result = await response.json();
+    if (result.success) {
+      campo.value = formatCurrency(result.data.saida.lucroLiquidoValor);
+    }
+  } catch (error) {
+    console.error('Erro ao calcular a margem em R$:', error);
+  }
 }
 
 function setFederalValue(id, valor) {
@@ -175,7 +199,8 @@ function atualizarHintsFederais(preset) {
     hintPis: preset.hintPisCofins,
     hintCofins: preset.hintPisCofins,
     hintCsll: preset.hintCsllIrpj,
-    hintIrpj: preset.hintCsllIrpj
+    hintIrpj: preset.hintCsllIrpj,
+    hintMargemLucro: preset.hintMargem
   };
   Object.keys(hints).forEach(id => {
     const el = document.getElementById(id);
@@ -693,6 +718,7 @@ function renderEmptyResults(formData) {
   document.getElementById('badgeRegime').textContent = formData.regimeTributario || 'Lucro Presumido';
   document.getElementById('resPrecoVenda').textContent = 'R$ 0,00';
   document.getElementById('resLucroLiquido').textContent = 'R$ 0,00 (0%)';
+  document.getElementById('margemLucroDesejadaValor').value = formatCurrency(0);
   document.getElementById('resCustoLiquido').textContent = 'R$ 0,00';
   document.getElementById('resMarkup').textContent = '0.00x';
 
@@ -740,6 +766,7 @@ function renderResults(data) {
   document.getElementById('badgeRegime').textContent = data.regimeTributario;
   document.getElementById('resPrecoVenda').textContent = formatCurrency(data.saida.precoVendaSugerido);
   document.getElementById('resLucroLiquido').textContent = `${formatCurrency(data.saida.lucroLiquidoValor)} (${data.saida.margemLucroDesejadaPct}%)`;
+  document.getElementById('margemLucroDesejadaValor').value = formatCurrency(data.saida.lucroLiquidoValor);
   document.getElementById('resCustoLiquido').textContent = formatCurrency(data.entrada.custoFormado);
   document.getElementById('resMarkup').textContent = `${data.saida.markupSobreCustoBruto}x`;
 
@@ -804,7 +831,9 @@ function renderResults(data) {
 
   // IMPOSTOS FEDERAIS (R$ 37,01)
   if (document.getElementById('tabFederaisVal')) {
-    const somaFederais = (data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
+    const somaFederais = (data.saida.aliquotaFederaisEfetivaPct !== undefined
+      ? data.saida.aliquotaFederaisEfetivaPct
+      : data.saida.pisPct + data.saida.cofinsPct + data.saida.csllPct + data.saida.irpjPct).toFixed(2);
     document.getElementById('tabFederaisDet').textContent = `${somaFederais}% sobre R$ ${data.saida.precoVendaSugerido}`;
     document.getElementById('tabFederaisVal').textContent = formatCurrency(data.saida.impostosFederaisValor);
   }
