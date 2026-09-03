@@ -24,9 +24,38 @@ let totalItemsValue = 0;
 let currentProductIndex = 0;
 let savedProductsBatch = [];
 
+// PIS/COFINS mudam conforme o regime: cumulativo (Lucro Presumido) x nao cumulativo (Lucro Real).
+// No Simples Nacional os federais estao embutidos no DAS, entao nao entram em separado na precificacao.
+const PRESETS_REGIME = {
+  'Simples Nacional': {
+    pisPct: 0,
+    cofinsPct: 0,
+    csllPct: 0,
+    irpjPct: 0,
+    hintPisCofins: 'Incluso no DAS',
+    hintCsllIrpj: 'Incluso no DAS'
+  },
+  'Lucro Presumido': {
+    pisPct: 0.65,
+    cofinsPct: 3.00,
+    hintPisCofins: 'Cumulativo (sem crédito)',
+    hintCsllIrpj: '% sob Venda'
+  },
+  'Lucro Real': {
+    pisPct: 1.65,
+    cofinsPct: 7.60,
+    hintPisCofins: 'Não cumulativo (com crédito)',
+    hintCsllIrpj: '% estimado sob Venda'
+  }
+};
+
+// Guarda CSLL/IRPJ informados antes de entrar no Simples Nacional, para restaurar na volta.
+let federaisAntesDoSimples = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
   populateStateSelects();
   loadStateFromURL();
+  aplicarPresetRegimeNaCarga();
   setupEventListeners();
   setupXmlDropzone();
   setupNcmSearch();
@@ -75,6 +104,11 @@ function setupEventListeners() {
     });
   }
 
+  document.getElementById('regimeTributario').addEventListener('change', (e) => {
+    aplicarPresetRegime(e.target.value);
+    syncUrlParams();
+  });
+
   document.getElementById('ufOrigem').addEventListener('change', fetchIcmsRates);
   document.getElementById('ufDestino').addEventListener('change', fetchIcmsRates);
 
@@ -98,6 +132,68 @@ function setupEventListeners() {
       downloadAnchorNode.remove();
     });
   }
+}
+
+/**
+ * Preenche PIS/COFINS (e zera CSLL/IRPJ no Simples) conforme o regime tributário escolhido.
+ */
+function aplicarPresetRegime(regime) {
+  const preset = PRESETS_REGIME[regime];
+  if (!preset) return;
+
+  const campos = ['pisPct', 'cofinsPct', 'csllPct', 'irpjPct'];
+
+  if (regime === 'Simples Nacional') {
+    if (!federaisAntesDoSimples) {
+      federaisAntesDoSimples = {
+        csllPct: document.getElementById('csllPct').value,
+        irpjPct: document.getElementById('irpjPct').value
+      };
+    }
+    campos.forEach(id => setFederalValue(id, 0));
+  } else {
+    setFederalValue('pisPct', preset.pisPct);
+    setFederalValue('cofinsPct', preset.cofinsPct);
+
+    if (federaisAntesDoSimples) {
+      document.getElementById('csllPct').value = federaisAntesDoSimples.csllPct;
+      document.getElementById('irpjPct').value = federaisAntesDoSimples.irpjPct;
+      federaisAntesDoSimples = null;
+    }
+  }
+
+  atualizarHintsFederais(preset);
+}
+
+function setFederalValue(id, valor) {
+  const el = document.getElementById(id);
+  if (el) el.value = Number(valor).toFixed(2);
+}
+
+function atualizarHintsFederais(preset) {
+  const hints = {
+    hintPis: preset.hintPisCofins,
+    hintCofins: preset.hintPisCofins,
+    hintCsll: preset.hintCsllIrpj,
+    hintIrpj: preset.hintCsllIrpj
+  };
+  Object.keys(hints).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = hints[id];
+  });
+}
+
+/**
+ * Na carga, só aplica o preset se as alíquotas não vieram explicitamente na URL compartilhada.
+ */
+function aplicarPresetRegimeNaCarga() {
+  const params = new URLSearchParams(window.location.search);
+  const regime = document.getElementById('regimeTributario').value;
+  if (params.has('pisPct') || params.has('cofinsPct')) {
+    atualizarHintsFederais(PRESETS_REGIME[regime] || PRESETS_REGIME['Lucro Presumido']);
+    return;
+  }
+  aplicarPresetRegime(regime);
 }
 
 function setupModals() {

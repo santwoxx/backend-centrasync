@@ -9,6 +9,22 @@ const ALIQUOTAS_ICMS_ESTADOS_PADRAO = {
   RO: 0.175, RR: 0.20, RS: 0.17, SC: 0.17, SE: 0.19, SP: 0.18, TO: 0.20
 };
 
+// Alíquotas federais padrão por regime, usadas quando o chamador não informa o percentual.
+// Lucro Presumido = PIS/COFINS cumulativos; Lucro Real = não cumulativos;
+// Simples Nacional = federais recolhidos no DAS (não incidem em separado sobre a venda).
+const PRESETS_FEDERAIS_POR_REGIME = {
+  'Simples Nacional': { pisPct: 0, cofinsPct: 0, csllPct: 0, irpjPct: 0 },
+  'Lucro Presumido': { pisPct: 0.65, cofinsPct: 3, csllPct: 1.2, irpjPct: 2 },
+  'Lucro Real': { pisPct: 1.65, cofinsPct: 7.6, csllPct: 1.2, irpjPct: 2 }
+};
+
+function resolverAliquotaFederal(valorInformado, padraoDoRegime) {
+  if (valorInformado === null || valorInformado === undefined || valorInformado === '') {
+    return padraoDoRegime;
+  }
+  return Number(valorInformado) || 0;
+}
+
 function obterAliquotaInterestadual(ufOrigem, ufDestino, ehImportado = false) {
   if (ehImportado) return 0.04;
   if (!ufOrigem || !ufDestino || ufOrigem === ufDestino) {
@@ -66,10 +82,11 @@ function calcularPrecificacao(input) {
     
     // Saída (Venda) & Impostos sobre Venda
     aliquotaSaidaOverride = null,
-    pisPct = 0.65,
-    cofinsPct = 3,
-    csllPct = 1.2,
-    irpjPct = 2,
+    // Quando omitidos, assumem o padrão do regime (PRESETS_FEDERAIS_POR_REGIME)
+    pisPct = null,
+    cofinsPct = null,
+    csllPct = null,
+    irpjPct = null,
 
     // Despesas Variáveis sobre Venda (%)
     comissaoVendaPct = 5,
@@ -166,10 +183,11 @@ function calcularPrecificacao(input) {
     }
   }
 
-  const pPis = Number(pisPct) || 0;
-  const pCofins = Number(cofinsPct) || 0;
-  const pCsll = Number(csllPct) || 0;
-  const pIrpj = Number(irpjPct) || 0;
+  const presetFederal = PRESETS_FEDERAIS_POR_REGIME[regimeTributario] || PRESETS_FEDERAIS_POR_REGIME['Lucro Presumido'];
+  const pPis = resolverAliquotaFederal(pisPct, presetFederal.pisPct);
+  const pCofins = resolverAliquotaFederal(cofinsPct, presetFederal.cofinsPct);
+  const pCsll = resolverAliquotaFederal(csllPct, presetFederal.csllPct);
+  const pIrpj = resolverAliquotaFederal(irpjPct, presetFederal.irpjPct);
   const aliquotaFederaisPct = pPis + pCofins + pCsll + pIrpj;
 
   let cargaTributariaSaidaPct = aliquotaIcmsVendaPct + pCsll + pIrpj;
