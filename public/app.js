@@ -511,6 +511,12 @@ function loadProductIntoForm(p) {
   
   const icmsVal = p.creditoIcmsEntrada !== undefined ? p.creditoIcmsEntrada : p.vICMS;
   if (icmsVal !== undefined) document.getElementById('creditoIcmsEntradaOverride').value = icmsVal;
+
+  // PIS/COFINS destacados na NF-e (unitários), com a alíquota da nota na legenda
+  preencherFederalEntrada('pis', p.pisEntradaValor !== undefined ? p.pisEntradaValor : p.vPIS,
+    p.pisEntradaPct !== undefined ? p.pisEntradaPct : p.pPIS);
+  preencherFederalEntrada('cofins', p.cofinsEntradaValor !== undefined ? p.cofinsEntradaValor : p.vCOFINS,
+    p.cofinsEntradaPct !== undefined ? p.cofinsEntradaPct : p.pCOFINS);
   
   // Atualiza texto do botão
   const btnText = document.getElementById('btnSaveAndNextText');
@@ -518,6 +524,54 @@ function loadProductIntoForm(p) {
     btnText.textContent = `Salvar Produto (${currentProductIndex + 1}/${nfeProductsQueue.length}) e Próximo`;
     if (currentProductIndex === nfeProductsQueue.length - 1) {
       btnText.textContent = `Salvar Último Produto (${currentProductIndex + 1}/${nfeProductsQueue.length})`;
+    }
+  }
+}
+
+/**
+ * Escreve o PIS ou COFINS destacado na NF-e de compra e mostra a alíquota da nota na legenda.
+ */
+function preencherFederalEntrada(tributo, valor, aliquota) {
+  const campo = document.getElementById(tributo + 'EntradaValor');
+  const hint = document.getElementById(tributo === 'pis' ? 'hintPisEntrada' : 'hintCofinsEntrada');
+  if (!campo) return;
+
+  campo.value = valor !== undefined && valor !== null ? Number(valor).toFixed(4) : 0;
+  if (hint) {
+    hint.textContent = aliquota
+      ? `${formatPercent(Number(aliquota))} destacado na NF-e`
+      : 'Destacado na NF-e de compra';
+  }
+}
+
+/**
+ * Mostra quanto do PIS/COFINS da compra virou crédito (zero fora do não cumulativo).
+ */
+function renderCreditoPisCofins(entrada) {
+  const campo = document.getElementById('creditoPisCofinsEntrada');
+  const hint = document.getElementById('hintCreditoPisCofins');
+  const credito = entrada.creditoPisCofinsEntrada || 0;
+  const aproveitavel = entrada.creditoPisCofinsAproveitavel === true;
+
+  if (campo) campo.value = formatCurrency(credito);
+  if (hint) {
+    if (entrada.creditoPisCofinsAproveitavel === undefined) {
+      hint.textContent = 'Abatido só no Lucro Real (não cumulativo)';
+    } else {
+      hint.textContent = aproveitavel
+        ? 'Abatido do custo (não cumulativo)'
+        : 'Regime cumulativo: entra no custo, sem crédito';
+    }
+  }
+
+  const linha = document.getElementById('rowCreditoPisCofins');
+  if (linha) {
+    linha.style.display = credito > 0 ? '' : 'none';
+    if (credito > 0) {
+      const det = document.getElementById('tabCreditoPisCofinsDet');
+      const val = document.getElementById('tabCreditoPisCofins');
+      if (det) det.textContent = `PIS ${formatCurrency(entrada.pisEntradaValor)} + COFINS ${formatCurrency(entrada.cofinsEntradaValor)} da NF-e de compra`;
+      if (val) val.textContent = `- ${formatCurrency(credito)}`;
     }
   }
 }
@@ -672,6 +726,8 @@ function getFormData() {
     outrasDespesasEntrada: document.getElementById('outrasDespesasEntrada').value,
     aliquotaIcmsEntradaOverride: document.getElementById('aliquotaIcmsEntradaOverride').value,
     creditoIcmsEntradaOverride: document.getElementById('creditoIcmsEntradaOverride').value,
+    pisEntradaValor: document.getElementById('pisEntradaValor').value,
+    cofinsEntradaValor: document.getElementById('cofinsEntradaValor').value,
     antecipacaoParcialPct: document.getElementById('antecipacaoParcialPct').value,
     aliquotaSaidaOverride: document.getElementById('aliquotaSaidaOverride').value,
     pisPct: document.getElementById('pisPct').value,
@@ -756,6 +812,7 @@ function renderEmptyResults(formData) {
     document.getElementById('tabIcmsPagar').textContent = 'R$ 0,00';
   }
   esconderDetalheFederais();
+  renderCreditoPisCofins({});
 
   if (document.getElementById('tabFederaisVal')) {
     document.getElementById('tabFederaisVal').textContent = 'R$ 0,00';
@@ -844,6 +901,7 @@ function renderResults(data) {
   }
 
   renderDetalheFederais(data.saida);
+  renderCreditoPisCofins(data.entrada);
 
   // TOTAL DE IMPOSTOS A RECOLHER
   const hasAntecipacao = data.entrada.antecipacaoParcial > 0;
@@ -909,6 +967,7 @@ function syncUrlParams() {
     'produto', 'ncmInput', 'regimeTributario', 'ufOrigem', 'ufDestino',
     'custoCompra', 'fretePct', 'ipiPct', 'desconto',
     'aliquotaIcmsEntradaOverride', 'creditoIcmsEntradaOverride', 'antecipacaoParcialPct',
+    'pisEntradaValor', 'cofinsEntradaValor',
     'aliquotaSaidaOverride', 'pisPct', 'cofinsPct', 'csllPct', 'irpjPct',
     'comissaoVendaPct', 'taxaCartaoPct', 'taxaMarketplacePct', 'freteVendaPct', 'montagemPct',
     'despesasVariaveisPct', 'margemLucroDesejadaPct'

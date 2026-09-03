@@ -83,10 +83,12 @@ function parseNFeXml(xmlContent) {
 
     // PIS e COFINS
     const pisSection = extractSection(impostoSection, 'PIS');
+    const pPIS = parseFloat(extractTagValue(pisSection, 'pPIS') || '0');
     const vPIS = parseFloat(extractTagValue(pisSection, 'vPIS') || '0');
     const vPISUnit = vPIS / qtde;
 
     const cofinsSection = extractSection(impostoSection, 'COFINS');
+    const pCOFINS = parseFloat(extractTagValue(cofinsSection, 'pCOFINS') || '0');
     const vCOFINS = parseFloat(extractTagValue(cofinsSection, 'vCOFINS') || '0');
     const vCOFINSUnit = vCOFINS / qtde;
 
@@ -105,7 +107,9 @@ function parseNFeXml(xmlContent) {
       vICMS: vICMSUnit,
       pICMSST,
       vICMSST: vICMSSTUnit,
+      pPIS,
       vPIS: vPISUnit,
+      pCOFINS,
       vCOFINS: vCOFINSUnit
     });
   });
@@ -128,7 +132,11 @@ function parseNFeXml(xmlContent) {
         ipiPct: primeiroItem.pIPI || 0,
         ipiValor: primeiroItem.vIPI || 0,
         aliquotaIcmsEntrada: primeiroItem.pICMS || 0,
-        creditoIcmsEntrada: primeiroItem.vICMS || 0
+        creditoIcmsEntrada: primeiroItem.vICMS || 0,
+        pisEntradaPct: primeiroItem.pPIS || 0,
+        pisEntradaValor: primeiroItem.vPIS || 0,
+        cofinsEntradaPct: primeiroItem.pCOFINS || 0,
+        cofinsEntradaValor: primeiroItem.vCOFINS || 0
       },
       produtos
     }

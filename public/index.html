@@ -155,6 +155,24 @@
               <span class="field-hint">Crédito futuro a abater</span>
             </div>
           </div>
+
+          <div class="form-grid-3">
+            <div class="form-group">
+              <label for="pisEntradaValor">PIS Entrada (R$)</label>
+              <input type="number" id="pisEntradaValor" value="0" step="0.0001" min="0">
+              <span class="field-hint" id="hintPisEntrada">Destacado na NF-e de compra</span>
+            </div>
+            <div class="form-group">
+              <label for="cofinsEntradaValor">COFINS Entrada (R$)</label>
+              <input type="number" id="cofinsEntradaValor" value="0" step="0.0001" min="0">
+              <span class="field-hint" id="hintCofinsEntrada">Destacado na NF-e de compra</span>
+            </div>
+            <div class="form-group">
+              <label for="creditoPisCofinsEntrada">Crédito PIS/COFINS (R$)</label>
+              <input type="text" id="creditoPisCofinsEntrada" value="R$ 0,00" readonly tabindex="-1">
+              <span class="field-hint" id="hintCreditoPisCofins">Abatido só no Lucro Real (não cumulativo)</span>
+            </div>
+          </div>
         </div>
 
         <!-- Card 3: Saída (Venda, Impostos Federais, Frete & Montagem) -->
@@ -330,6 +348,11 @@
                 <td><strong>(=) Custo Formado do Produto</strong></td>
                 <td>Base da Mercadoria</td>
                 <td class="text-right font-bold" id="tabCustoFormado">R$ 348,59</td>
+              </tr>
+              <tr class="row-highlight-green" id="rowCreditoPisCofins" style="display: none;">
+                <td><strong>(-) CRÉDITO DE PIS/COFINS</strong></td>
+                <td id="tabCreditoPisCofinsDet">PIS + COFINS da NF-e de compra</td>
+                <td class="text-right text-green" id="tabCreditoPisCofins">- R$ 0,00</td>
               </tr>
               <tr>
                 <td><strong>(+) ICMS SOBRE VENDAS</strong></td>
@@ -545,6 +568,11 @@
                 <td><strong>(=) Custo Formado do Produto</strong></td>
                 <td>Base da Mercadoria</td>
                 <td class="text-right font-bold" id="tabCustoFormado">R$ 348,59</td>
+              </tr>
+              <tr class="row-highlight-green" id="rowCreditoPisCofins" style="display: none;">
+                <td><strong>(-) CRÉDITO DE PIS/COFINS</strong></td>
+                <td id="tabCreditoPisCofinsDet">PIS + COFINS da NF-e de compra</td>
+                <td class="text-right text-green" id="tabCreditoPisCofins">- R$ 0,00</td>
               </tr>
               <tr>
                 <td><strong>(+) ICMS SOBRE VENDAS</strong></td>

@@ -25,6 +25,12 @@ function csllIrpjIncidemSobreLucro(regimeTributario) {
   return regimeTributario === 'Lucro Real';
 }
 
+// PIS/COFINS destacados na NF de compra só viram crédito no regime não cumulativo
+// (Lucro Real). Em Lucro Presumido e Simples Nacional são custo, não crédito.
+function regimeNaoCumulativo(regimeTributario) {
+  return regimeTributario === 'Lucro Real';
+}
+
 function resolverAliquotaFederal(valorInformado, padraoDoRegime) {
   if (valorInformado === null || valorInformado === undefined || valorInformado === '') {
     return padraoDoRegime;
@@ -82,6 +88,10 @@ function calcularPrecificacao(input) {
     
     aliquotaIcmsEntradaOverride = null,
     creditoIcmsEntradaOverride = null,
+
+    // PIS/COFINS destacados na NF-e de compra (R$ por unidade)
+    pisEntradaValor = 0,
+    cofinsEntradaValor = 0,
     
     // Antecipação / DIFAL (%) ou Valor Manual
     antecipacaoParcialPct = null,
@@ -166,8 +176,13 @@ function calcularPrecificacao(input) {
     aliquotaAntecipacao = custoFormado > 0 ? (antecipacaoParcial / custoFormado) : 0;
   }
 
+  // Crédito de PIS/COFINS da compra (só existe no não cumulativo)
+  const pisEntrada = Math.max(0, Number(pisEntradaValor) || 0);
+  const cofinsEntrada = Math.max(0, Number(cofinsEntradaValor) || 0);
+  const creditoPisCofinsEntrada = regimeNaoCumulativo(regimeTributario) ? (pisEntrada + cofinsEntrada) : 0;
+
   // Custo Líquido para Precificação
-  const custoLiquidoReal = custoFormado - creditoIcmsEntrada + antecipacaoParcial;
+  const custoLiquidoReal = custoFormado - creditoIcmsEntrada - creditoPisCofinsEntrada + antecipacaoParcial;
 
   // 3. Despesas Variáveis sobre Venda
   const somaDespesasDetalhadas = Number(comissaoVendaPct) + Number(taxaCartaoPct) + Number(taxaMarketplacePct) + Number(freteVendaPct) + Number(montagemPct) + Number(outrasDespesasVariaveisPct);
@@ -276,6 +291,10 @@ function calcularPrecificacao(input) {
       baseCalculoEntrada: Number(baseCalculoEntrada.toFixed(4)),
       aliquotaEntradaPct: Number((aliquotaEntradaEfetiva * 100).toFixed(2)),
       creditoIcmsEntrada: Number(creditoIcmsEntrada.toFixed(4)),
+      pisEntradaValor: Number(pisEntrada.toFixed(4)),
+      cofinsEntradaValor: Number(cofinsEntrada.toFixed(4)),
+      creditoPisCofinsEntrada: Number(creditoPisCofinsEntrada.toFixed(4)),
+      creditoPisCofinsAproveitavel: regimeNaoCumulativo(regimeTributario),
       aliquotaAntecipacaoPct: Number((aliquotaAntecipacao * 100).toFixed(2)),
       antecipacaoParcial: Number(antecipacaoParcial.toFixed(4)),
       custoLiquido: Number(custoLiquidoReal.toFixed(4))
