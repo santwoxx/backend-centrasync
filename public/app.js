@@ -67,6 +67,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   setupXmlDropzone();
   setupNcmSearch();
   setupModals();
+  setupComentarios();
+  setupCardsRecolhiveis();
   await updateCalculations();
 });
 
@@ -1019,4 +1021,373 @@ function showToast(message) {
   setTimeout(() => {
     toast.classList.remove('show');
   }, 3500);
+}
+
+/* ============================================================
+   Comentários do contador
+   Ficam no navegador de quem comenta (localStorage) e saem daqui
+   por texto ("Copiar tudo") ou por link (#comentarios=...), já que
+   a aplicação não tem banco de dados.
+   ============================================================ */
+const COMENTARIOS_KEY = 'centralsync_comentarios_v1';
+const COMENTARIO_AUTOR_KEY = 'centralsync_comentario_autor';
+let comentarios = [];
+
+function setupComentarios() {
+  comentarios = lerComentariosSalvos();
+
+  const recebidos = lerComentariosDoLink();
+  if (recebidos.length > 0) {
+    const idsAtuais = new Set(comentarios.map(c => c.id));
+    const novos = recebidos.filter(c => !idsAtuais.has(c.id));
+    if (novos.length > 0) {
+      comentarios = comentarios.concat(novos);
+      salvarComentarios();
+      showToast(`${novos.length} comentário(s) recebidos pelo link.`);
+    }
+  }
+
+  const autorSalvo = lerLocalStorage(COMENTARIO_AUTOR_KEY);
+  if (autorSalvo) document.getElementById('comentarioAutor').value = autorSalvo;
+
+  document.getElementById('btnOpenCommentsModal').addEventListener('click', abrirModalComentarios);
+  document.getElementById('btnAddComentario').addEventListener('click', adicionarComentario);
+  document.getElementById('btnCopiarComentarios').addEventListener('click', copiarComentarios);
+  document.getElementById('btnCopiarLinkComentarios').addEventListener('click', copiarLinkComentarios);
+  document.getElementById('btnLimparComentarios').addEventListener('click', limparComentarios);
+
+  // Toque fora da folha fecha o modal (útil no celular)
+  document.getElementById('modalComentarios').addEventListener('click', (e) => {
+    if (e.target.id === 'modalComentarios') fecharModalComentarios();
+  });
+
+  renderComentarios();
+}
+
+function abrirModalComentarios() {
+  document.getElementById('modalComentarios').style.display = 'flex';
+  renderComentarios();
+}
+
+function fecharModalComentarios() {
+  document.getElementById('modalComentarios').style.display = 'none';
+}
+
+function adicionarComentario() {
+  const texto = document.getElementById('comentarioTexto').value.trim();
+  if (!texto) {
+    showToast('Escreva o comentário antes de adicionar.');
+    return;
+  }
+
+  const autor = document.getElementById('comentarioAutor').value.trim();
+  if (autor) gravarLocalStorage(COMENTARIO_AUTOR_KEY, autor);
+
+  comentarios.push({
+    id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    autor: autor || 'Contador',
+    topico: document.getElementById('comentarioTopico').value,
+    texto,
+    data: new Date().toISOString(),
+    cenario: document.getElementById('comentarioAnexarCalculo').checked ? montarCenario() : null
+  });
+
+  salvarComentarios();
+  document.getElementById('comentarioTexto').value = '';
+  renderComentarios();
+  showToast('Comentário adicionado.');
+}
+
+function removerComentario(id) {
+  comentarios = comentarios.filter(c => c.id !== id);
+  salvarComentarios();
+  renderComentarios();
+}
+
+function limparComentarios() {
+  if (comentarios.length === 0) return;
+  if (!confirm('Apagar todos os comentários deste navegador?')) return;
+  comentarios = [];
+  salvarComentarios();
+  renderComentarios();
+  showToast('Comentários apagados.');
+}
+
+/**
+ * Fotografia do que estava na tela: entradas principais + resultado do último cálculo.
+ */
+function montarCenario() {
+  const f = getFormData();
+  const cenario = {
+    produto: f.produto,
+    regime: f.regimeTributario,
+    rota: `${f.ufOrigem} → ${f.ufDestino}`,
+    custoCompra: f.custoCompra,
+    ipiPct: f.ipiPct,
+    icmsEntradaPct: f.aliquotaIcmsEntradaOverride,
+    creditoIcms: f.creditoIcmsEntradaOverride,
+    pisEntrada: f.pisEntradaValor,
+    cofinsEntrada: f.cofinsEntradaValor,
+    icmsSaidaPct: f.aliquotaSaidaOverride,
+    pisPct: f.pisPct,
+    cofinsPct: f.cofinsPct,
+    csllPct: f.csllPct,
+    irpjPct: f.irpjPct,
+    despesasPct: f.despesasVariaveisPct,
+    margemPct: f.margemLucroDesejadaPct
+  };
+
+  if (lastCalculatedData) {
+    const d = lastCalculatedData;
+    cenario.resultado = {
+      precoVenda: d.saida.precoVendaSugerido,
+      custoLiquido: d.entrada.custoLiquido,
+      creditoPisCofins: d.entrada.creditoPisCofinsEntrada,
+      icmsPagar: d.demonstrativoFiscal.saldoIcmsRecolher,
+      federais: d.saida.impostosFederaisValor,
+      lucro: d.saida.lucroLiquidoValor,
+      cargaEfetivaPct: d.demonstrativoFiscal.cargaTributariaEfetivaPct
+    };
+  }
+
+  return cenario;
+}
+
+function renderComentarios() {
+  atualizarBadgeComentarios();
+
+  const lista = document.getElementById('comentariosLista');
+  if (!lista) return;
+
+  if (comentarios.length === 0) {
+    lista.innerHTML = '<div class="comentarios-vazio">Nenhum comentário ainda. O que você escrever aqui fica salvo neste navegador.</div>';
+    return;
+  }
+
+  lista.innerHTML = '';
+  comentarios.slice().reverse().forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'comentario-item';
+
+    const topo = document.createElement('div');
+    topo.className = 'comentario-topo';
+
+    const meta = document.createElement('span');
+    meta.className = 'comentario-meta';
+    const autorEl = document.createElement('strong');
+    autorEl.textContent = c.autor;
+    const dataEl = document.createElement('span');
+    dataEl.textContent = ` · ${formatarDataComentario(c.data)}`;
+    meta.appendChild(autorEl);
+    meta.appendChild(dataEl);
+
+    const direita = document.createElement('span');
+    direita.className = 'comentario-acoes';
+
+    const tag = document.createElement('span');
+    tag.className = 'comentario-tag';
+    tag.textContent = c.topico;
+
+    const remover = document.createElement('button');
+    remover.className = 'comentario-remover';
+    remover.title = 'Remover comentário';
+    remover.textContent = '×';
+    remover.addEventListener('click', () => removerComentario(c.id));
+
+    direita.appendChild(tag);
+    direita.appendChild(remover);
+    topo.appendChild(meta);
+    topo.appendChild(direita);
+
+    const texto = document.createElement('div');
+    texto.className = 'comentario-texto';
+    texto.textContent = c.texto;
+
+    item.appendChild(topo);
+    item.appendChild(texto);
+
+    if (c.cenario) {
+      const snap = document.createElement('div');
+      snap.className = 'comentario-snapshot';
+      snap.textContent = resumoCenario(c.cenario);
+      item.appendChild(snap);
+    }
+
+    lista.appendChild(item);
+  });
+}
+
+function resumoCenario(c) {
+  const partes = [
+    `${c.produto || 'Produto'} · ${c.regime} · ${c.rota}`,
+    `custo ${formatCurrency(Number(c.custoCompra))} · IPI ${c.ipiPct}% · ICMS entrada ${c.icmsEntradaPct}% · saída ${c.icmsSaidaPct}%`,
+    `PIS ${c.pisPct}% · COFINS ${c.cofinsPct}% · CSLL ${c.csllPct}% · IRPJ ${c.irpjPct}% · margem ${c.margemPct}%`
+  ];
+
+  if (c.resultado) {
+    partes.push(`→ preço ${formatCurrency(c.resultado.precoVenda)} · custo líquido ${formatCurrency(c.resultado.custoLiquido)} · ICMS a pagar ${formatCurrency(c.resultado.icmsPagar)} · federais ${formatCurrency(c.resultado.federais)} · carga ${c.resultado.cargaEfetivaPct}%`);
+  } else {
+    partes.push('→ sem cálculo feito no momento do comentário');
+  }
+
+  return partes.join('\n');
+}
+
+/**
+ * Texto pronto para colar no chat/WhatsApp com o contador.
+ */
+function textoDosComentarios() {
+  const linhas = ['# Comentários sobre a Calculadora CentralSync', ''];
+
+  comentarios.forEach((c, i) => {
+    linhas.push(`## ${i + 1}. [${c.topico}] ${c.autor} — ${formatarDataComentario(c.data)}`);
+    linhas.push(c.texto);
+    if (c.cenario) {
+      linhas.push('');
+      linhas.push('Cenário no momento do comentário:');
+      resumoCenario(c.cenario).split('\n').forEach(l => linhas.push(`- ${l}`));
+    }
+    linhas.push('');
+  });
+
+  return linhas.join('\n');
+}
+
+function copiarComentarios() {
+  if (comentarios.length === 0) {
+    showToast('Nenhum comentário para copiar.');
+    return;
+  }
+
+  copiarTexto(textoDosComentarios(), 'Comentários copiados! É só colar para enviar.');
+}
+
+function copiarLinkComentarios() {
+  if (comentarios.length === 0) {
+    showToast('Nenhum comentário para enviar no link.');
+    return;
+  }
+
+  syncUrlParams();
+  const link = `${window.location.origin}${window.location.pathname}${window.location.search}#comentarios=${paraBase64(JSON.stringify(comentarios))}`;
+  copiarTexto(link, 'Link com os comentários copiado!');
+}
+
+function copiarTexto(texto, mensagemOk) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto)
+      .then(() => showToast(mensagemOk))
+      .catch(() => copiarTextoFallback(texto, mensagemOk));
+    return;
+  }
+  copiarTextoFallback(texto, mensagemOk);
+}
+
+function copiarTextoFallback(texto, mensagemOk) {
+  const area = document.createElement('textarea');
+  area.value = texto;
+  area.style.position = 'fixed';
+  area.style.opacity = '0';
+  document.body.appendChild(area);
+  area.select();
+  try {
+    document.execCommand('copy');
+    showToast(mensagemOk);
+  } catch (err) {
+    alert(texto);
+  }
+  area.remove();
+}
+
+function lerComentariosSalvos() {
+  const bruto = lerLocalStorage(COMENTARIOS_KEY);
+  if (!bruto) return [];
+  try {
+    const lista = JSON.parse(bruto);
+    return Array.isArray(lista) ? lista : [];
+  } catch (err) {
+    console.error('Comentários salvos ilegíveis:', err);
+    return [];
+  }
+}
+
+function lerComentariosDoLink() {
+  const hash = window.location.hash || '';
+  const marcador = '#comentarios=';
+  if (!hash.startsWith(marcador)) return [];
+
+  try {
+    const lista = JSON.parse(deBase64(hash.slice(marcador.length)));
+    return Array.isArray(lista) ? lista : [];
+  } catch (err) {
+    console.error('Comentários do link ilegíveis:', err);
+    return [];
+  }
+}
+
+function salvarComentarios() {
+  gravarLocalStorage(COMENTARIOS_KEY, JSON.stringify(comentarios));
+  atualizarBadgeComentarios();
+}
+
+function atualizarBadgeComentarios() {
+  const badge = document.getElementById('comentariosBadge');
+  if (!badge) return;
+  badge.textContent = comentarios.length;
+  badge.style.display = comentarios.length > 0 ? 'inline-block' : 'none';
+}
+
+function formatarDataComentario(iso) {
+  const data = new Date(iso);
+  if (isNaN(data.getTime())) return '';
+  return data.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function lerLocalStorage(chave) {
+  try {
+    return window.localStorage.getItem(chave);
+  } catch (err) {
+    return null;
+  }
+}
+
+function gravarLocalStorage(chave, valor) {
+  try {
+    window.localStorage.setItem(chave, valor);
+  } catch (err) {
+    console.error('Não foi possível salvar no navegador:', err);
+  }
+}
+
+function paraBase64(texto) {
+  const bytes = new TextEncoder().encode(texto);
+  let binario = '';
+  bytes.forEach(b => { binario += String.fromCharCode(b); });
+  return btoa(binario);
+}
+
+function deBase64(base64) {
+  const binario = atob(base64);
+  const bytes = Uint8Array.from(binario, ch => ch.charCodeAt(0));
+  return new TextDecoder().decode(bytes);
+}
+
+/* ============================================================
+   Cards recolhíveis no celular (no desktop nada muda)
+   ============================================================ */
+const MEDIA_MOBILE = '(max-width: 768px)';
+
+function setupCardsRecolhiveis() {
+  document.querySelectorAll('.card-box > .card-title').forEach(titulo => {
+    titulo.addEventListener('click', () => {
+      if (!window.matchMedia(MEDIA_MOBILE).matches) return;
+      titulo.parentElement.classList.toggle('card-collapsed');
+    });
+  });
+
+  // Ao voltar para telas grandes, nada pode ficar escondido
+  window.addEventListener('resize', () => {
+    if (window.matchMedia(MEDIA_MOBILE).matches) return;
+    document.querySelectorAll('.card-box.card-collapsed').forEach(card => card.classList.remove('card-collapsed'));
+  });
 }

@@ -31,6 +31,9 @@
         <button id="btnOpenParamModal" class="btn-primary" title="Configurar regras de rateio (NF, Frete, Despesas)" style="margin-left: 10px;">
           ⚙️ Parâmetros de Rateio
         </button>
+        <button id="btnOpenCommentsModal" class="btn-secondary" title="Comentários e observações sobre a calculadora">
+          💬 Comentários <span id="comentariosBadge" class="count-badge" style="display: none;">0</span>
+        </button>
         <button id="btnShareLink" class="btn-share" title="Copiar link com esses parâmetros para o contador">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
           <span>Copiar Link Contador</span>
@@ -484,226 +487,6 @@
     </div>
 
     <!-- Modal 3: Parâmetros de Rateio -->
-        </div>
-        <!-- Botão Calcular Manual -->
-        <div style="text-align: center; margin: 30px 0;">
-          <button id="btnCalcularManual" class="btn-primary" style="padding: 16px 48px; font-size: 1.2rem; background-color: #0284c7; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
-            ⚡ CALCULAR
-          </button>
-        </div>
-      </section>
-
-      <!-- Results Panel -->
-      <section class="panel-results" id="panelResults" style="display: none;">
-        <!-- Main Price Card -->
-        <div class="card-box result-hero">
-          <div class="hero-header">
-            <span>Preço de Venda Sugerido</span>
-            <span class="badge-tag" id="badgeRegime">Lucro Presumido</span>
-          </div>
-          <div class="hero-price" id="resPrecoVenda">R$ 540,23</div>
-          <div class="hero-subgrid">
-            <div class="sub-item">
-              <span class="label">Lucro Líquido (R$)</span>
-              <span class="value val-green" id="resLucroLiquido">R$ 0,00 (0%)</span>
-            </div>
-            <div class="sub-item">
-              <span class="label">Custo Formado Real</span>
-              <span class="value" id="resCustoLiquido">R$ 348,59</span>
-            </div>
-            <div class="sub-item">
-              <span class="label">Markup Multiplicador</span>
-              <span class="value" id="resMarkup">1.60x</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Composition Bar Chart -->
-        <div class="card-box">
-          <div class="card-title">
-            <span class="icon">📊</span>
-            <h2>Composição do Preço de Venda</h2>
-          </div>
-          <div class="composition-bar">
-            <div class="bar-segment bar-custo" id="barCusto" style="width: 62.7%" title="Custo Líquido"></div>
-            <div class="bar-segment bar-impostos" id="barImpostos" style="width: 27.4%" title="Impostos"></div>
-            <div class="bar-segment bar-despesas" id="barDespesas" style="width: 10%" title="Despesas Variáveis"></div>
-            <div class="bar-segment bar-lucro" id="barLucro" style="width: 0%" title="Lucro Líquido"></div>
-          </div>
-          <div class="composition-legend">
-            <div class="legend-item"><span class="dot dot-custo"></span> Custo: <strong id="legendCustoPct">62.7%</strong></div>
-            <div class="legend-item"><span class="dot dot-impostos"></span> Impostos: <strong id="legendImpostosPct">27.4%</strong></div>
-            <div class="legend-item"><span class="dot dot-despesas"></span> Despesas: <strong id="legendDespesasPct">10.0%</strong></div>
-            <div class="legend-item"><span class="dot dot-lucro"></span> Lucro: <strong id="legendLucroPct">0.0%</strong></div>
-          </div>
-        </div>
-
-        <!-- Accountant Special View: Apuração Fiscal -->
-        <div class="card-box card-accountant">
-          <div class="card-title">
-            <span class="icon">🧾</span>
-            <h2>Demonstrativo de Apuração Fiscal (Visão Contador)</h2>
-          </div>
-
-          <table class="tax-table">
-            <thead>
-              <tr>
-                <th>Etapa Tributária</th>
-                <th>Base / Alíquota</th>
-                <th class="text-right">Valor (R$)</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><strong>(+) Custo Bruto de Compra</strong></td>
-                <td>Valor da NF de Entrada</td>
-                <td class="text-right" id="tabCustoBruto">R$ 337,62</td>
-              </tr>
-              <tr>
-                <td>(+) Frete + IPI da Compra</td>
-                <td id="tabFreteIpiDet">Frete: R$ 0,00 | IPI: R$ 10,97</td>
-                <td class="text-right" id="tabFreteIpi">R$ 10,97</td>
-              </tr>
-              <tr class="row-total-custo">
-                <td><strong>(=) Custo Formado do Produto</strong></td>
-                <td>Base da Mercadoria</td>
-                <td class="text-right font-bold" id="tabCustoFormado">R$ 348,59</td>
-              </tr>
-              <tr class="row-highlight-green" id="rowCreditoPisCofins" style="display: none;">
-                <td><strong>(-) CRÉDITO DE PIS/COFINS</strong></td>
-                <td id="tabCreditoPisCofinsDet">PIS + COFINS da NF-e de compra</td>
-                <td class="text-right text-green" id="tabCreditoPisCofins">- R$ 0,00</td>
-              </tr>
-              <tr>
-                <td><strong>(+) ICMS SOBRE VENDAS</strong></td>
-                <td id="tabIcmsSaidaDet">20,50% sobre R$ 540,23</td>
-                <td class="text-right text-purple" id="tabIcmsSaida">R$ 110,75</td>
-              </tr>
-              <tr class="row-highlight-amber">
-                <td><strong>(-) ICMS DE ENTRADA (Alíquota Interna)</strong></td>
-                <td id="tabIcmsEntradaInternaDet">Base de Cálculo x Alíquota Interna Destino</td>
-                <td class="text-right text-amber" id="tabIcmsEntradaInterna">- R$ 0,00</td>
-              </tr>
-              <tr class="row-highlight-green">
-                <td><strong>(-) CRÉDITO DE ICMS</strong></td>
-                <td id="tabCreditoDet">7% de ICMS de Origem (MG)</td>
-                <td class="text-right text-green" id="tabCreditoIcms">- R$ 23,63</td>
-              </tr>
-              <tr class="row-highlight-amber">
-                <td><strong>(-) ANTECIPAÇÃO PARCIAL</strong></td>
-                <td id="tabAntecipacaoDet">DIFAL Entrada (recolhido na entrada)</td>
-                <td class="text-right text-amber" id="tabAntecipacao">- R$ 47,06</td>
-              </tr>
-              <tr class="row-total-custo">
-                <td><strong>(=) ICMS A PAGAR</strong></td>
-                <td id="tabIcmsPagarDet">ICMS Vendas - Crédito - DIFAL</td>
-                <td class="text-right font-bold" id="tabIcmsPagar">R$ 40,06</td>
-              </tr>
-              <tr>
-                <td>(+) Impostos Federais (PIS/COFINS/CSLL/IRPJ)</td>
-                <td id="tabFederaisDet">6,85% sobre R$ 540,23</td>
-                <td class="text-right text-purple" id="tabFederaisVal">R$ 37,01</td>
-              </tr>
-              <tr class="row-federal-detalhe" id="rowFederalPis" style="display: none;">
-                <td>PIS</td>
-                <td id="tabPisDet"></td>
-                <td class="text-right text-purple" id="tabPisVal">R$ 0,00</td>
-              </tr>
-              <tr class="row-federal-detalhe" id="rowFederalCofins" style="display: none;">
-                <td>COFINS</td>
-                <td id="tabCofinsDet"></td>
-                <td class="text-right text-purple" id="tabCofinsVal">R$ 0,00</td>
-              </tr>
-              <tr class="row-federal-detalhe" id="rowFederalCsll" style="display: none;">
-                <td>CSLL</td>
-                <td id="tabCsllDet"></td>
-                <td class="text-right text-purple" id="tabCsllVal">R$ 0,00</td>
-              </tr>
-              <tr class="row-federal-detalhe" id="rowFederalIrpj" style="display: none;">
-                <td>IRPJ</td>
-                <td id="tabIrpjDet"></td>
-                <td class="text-right text-purple" id="tabIrpjVal">R$ 0,00</td>
-              </tr>
-              <tr class="row-total-final">
-                <td><strong>(=) TOTAL DE IMPOSTOS A RECOLHER</strong></td>
-                <td id="tabCargaEfetivaDet">ICMS a Pagar + Impostos Federais</td>
-                <td class="text-right font-bold text-primary" id="tabImpostoLiquido">R$ 77,07 (14.27%)</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
-
-    <!-- Multi-product Save & Next Section -->
-    <section class="multi-product-actions" id="multiProductActions" style="display: none; text-align: center; margin: 20px auto; max-width: 1200px;">
-      <button id="btnSaveAndNext" class="btn-primary" style="padding: 12px 24px; font-size: 1.1rem; width: 100%; max-width: 400px; margin: 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 8px;">
-        💾 <span id="btnSaveAndNextText">Salvar Produto e Ir para o Próximo</span>
-      </button>
-    </section>
-
-    <!-- Saved Products Table -->
-    <section class="saved-products-section" id="savedProductsSection" style="display: none; margin: 30px auto; max-width: 1200px;">
-      <div class="card-box">
-        <div class="card-title">
-          <span class="icon">📋</span>
-          <h2>Produtos Precificados (Lote Atual)</h2>
-        </div>
-        <table class="tax-table" id="savedProductsTable">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Custo Líquido</th>
-              <th>Preço de Venda</th>
-              <th>Lucro Líquido</th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- Dynamic rows -->
-          </tbody>
-        </table>
-        <div style="margin-top: 15px; text-align: right;">
-          <button id="btnExportBatch" class="btn-secondary">Exportar Todos (JSON)</button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Modal 1: Configuração da Tabela de ICMS por Estado -->
-    <div id="modalIcmsConfig" class="modal-overlay" style="display: none;">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3>⚙️ Editar Alíquotas de ICMS por Estado (UF)</h3>
-          <button class="btn-close-modal" onclick="closeIcmsModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="modal-sub">Personalize a alíquota interna de ICMS de qualquer estado se sua empresa possuir benefício fiscal ou regime especial.</p>
-          <div id="icmsStateGrid" class="icms-state-grid"></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-secondary" onclick="resetIcmsTableToDefault()">Restaurar Padrão</button>
-          <button class="btn-share" onclick="saveCustomIcmsTable()">Salvar Alíquotas</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal 2: Exportar JSON de Integração -->
-    <div id="modalExportJson" class="modal-overlay" style="display: none;">
-      <div class="modal-content modal-large">
-        <div class="modal-header">
-          <h3>📋 Payload JSON de Integração para seu Sistema</h3>
-          <button class="btn-close-modal" onclick="closeExportModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-          <p class="modal-sub">Quando estiver tudo ok, você pode enviar esta requisição JSON exatamente assim para o endpoint <code>POST /api/tax/calculate</code> do seu sistema backend:</p>
-          <pre id="jsonExportCode" class="json-code-box"></pre>
-        </div>
-        <div class="modal-footer">
-          <button class="btn-share" onclick="copyJsonExportCode()">Copiar Código JSON</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Modal 3: Parâmetros de Rateio -->
     <div id="modalParametrizacao" class="modal-overlay" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">
@@ -756,6 +539,58 @@
         </div>
         <div class="modal-footer">
           <button class="btn-share" onclick="closeParamModal()">Salvar Parâmetros</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 4: Comentários do Contador -->
+    <div id="modalComentarios" class="modal-overlay" style="display: none;">
+      <div class="modal-content modal-large">
+        <div class="modal-header">
+          <h3>💬 Comentários sobre a Calculadora</h3>
+          <button class="btn-close-modal" onclick="fecharModalComentarios()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <p class="modal-sub">Anote o que estiver divergente, faltando ou confuso. Cada comentário guarda junto os dados e o resultado que estavam na tela naquele momento, então depois dá para revisar exatamente o cenário comentado.</p>
+
+          <div class="form-grid-2">
+            <div class="form-group">
+              <label for="comentarioAutor">Seu nome</label>
+              <input type="text" id="comentarioAutor" placeholder="Ex: João Silva (contador)">
+            </div>
+            <div class="form-group">
+              <label for="comentarioTopico">Assunto</label>
+              <select id="comentarioTopico">
+                <option value="Geral">Geral</option>
+                <option value="Entrada / Compra">Entrada / Compra</option>
+                <option value="ICMS / DIFAL">ICMS / DIFAL</option>
+                <option value="PIS / COFINS">PIS / COFINS</option>
+                <option value="CSLL / IRPJ">CSLL / IRPJ</option>
+                <option value="Preço / Margem">Preço / Margem</option>
+                <option value="Importação do XML">Importação do XML</option>
+                <option value="Interface / Uso">Interface / Uso</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="comentarioTexto">Comentário</label>
+            <textarea id="comentarioTexto" rows="4" placeholder="Ex: o crédito de PIS/COFINS deveria ser apurado sobre o valor de aquisição, não sobre o destacado na nota."></textarea>
+          </div>
+
+          <label class="checkbox-line">
+            <input type="checkbox" id="comentarioAnexarCalculo" checked>
+            <span>Anexar os dados e o resultado que estão na tela agora</span>
+          </label>
+
+          <button id="btnAddComentario" class="btn-primary btn-block">Adicionar comentário</button>
+
+          <div class="comentarios-lista" id="comentariosLista"></div>
+        </div>
+        <div class="modal-footer modal-footer-wrap">
+          <button class="btn-secondary" id="btnLimparComentarios">Limpar tudo</button>
+          <button class="btn-secondary" id="btnCopiarLinkComentarios">🔗 Copiar link com comentários</button>
+          <button class="btn-share" id="btnCopiarComentarios">📋 Copiar tudo para enviar</button>
         </div>
       </div>
     </div>
